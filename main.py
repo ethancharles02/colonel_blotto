@@ -20,6 +20,7 @@ def parse_args():
     parser.add_argument("--p", type=float, default=2.0)
     parser.add_argument("--alpha", type=float, default=0.5)
     parser.add_argument("--c0", type=float, default=0.1)
+    parser.add_argument("--dp-temp", type=float, default=0.0)
     parser.add_argument("--retain", action="store_true")
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--results-dir", default="results")
@@ -55,6 +56,7 @@ def main():
         alpha=args.alpha,
         c0=args.c0,
         retain=args.retain,
+        dp_temp=args.dp_temp,
     )
 
     metadata["seed"] = args.seed

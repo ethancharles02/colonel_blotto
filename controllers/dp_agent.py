@@ -8,7 +8,16 @@ from scipy.optimize import linprog
 
 class DPAgent:
   # Initializes the agent with the parameters of the game
-  def __init__(self, side, n_a, n_d, theta, memory, n_stages, retain_troops=False, capture_resolution=100):
+  def __init__(self, side, n_a, n_d, theta, memory, n_stages, retain_troops=False, capture_resolution=100,
+               exploit=False, temperature=0.5):
+    # Make sure variables are valid
+    assert side in ["attacker", "defender"]
+    assert n_a > 0 and n_d > 0
+    assert theta >= 0 and theta <= 1
+    assert memory >= 0 and memory <= 1
+    assert n_stages > 0
+    assert capture_resolution > 5
+    assert temperature >= 0 and temperature <= 1
     # Store variables
     self.side = side
     self.n_a = n_a
@@ -19,13 +28,16 @@ class DPAgent:
     self.n_stages = n_stages
     self.retain_troops = retain_troops
     self.capture_resolution = capture_resolution
+    self.exploit = exploit
+    self.temperature = temperature
     self.valid_capture_probs = np.linspace(0, 1, capture_resolution + 1)[:-1] + 0.5 / capture_resolution
     # Solve the game
+    exploit_str = "False" if not exploit else f"True (temp={temperature:0.2f})"
     if not retain_troops:
-      print(f"Solving each stage with N_a={n_a}, N_d={n_d}, theta={theta}, memory={memory}...")
+      print(f"Solving each stage with N_a={n_a}, N_d={n_d}, theta={theta}, memory={memory}, exploit={exploit_str}...")
       self.solve_baseline()
     else:
-      print(f"Solving each stage with total troops={n_a + n_d}, theta={theta}, memory={memory}, and troop retention...")
+      print(f"Solving each stage with total troops={n_a + n_d}, theta={theta}, memory={memory}, exploit={exploit_str}, and troop retention...")
       self.solve_with_retention()
 
   # Returns a sample for the configured player
@@ -59,6 +71,15 @@ class DPAgent:
         mixture = self.defense_policies[stage - 1, attacking_troops, capture_index, :defending_troops + 1]
         strategy = np.random.choice(np.arange(defending_troops + 1), p=mixture)
       return int(strategy)
+    
+  # Softmax opponent strategy for exploitation
+  def soft_max(self, opponent_policy):
+    x = opponent_policy + 1e-3
+    x /= x.sum()
+    x = np.log(x)
+    x = np.exp(2 * self.temperature * x)
+    x /= x.sum()
+    return x
 
   # Solves the mixed strategies of each side
   def solve_mixtures(self, payoff_matrix):
@@ -96,6 +117,11 @@ class DPAgent:
     value = float(0.5*(attack_payoff + defend_payoff))
     attack_strategy = (attack_strategy + attack_strategy[::-1]) / 2
     defend_strategy = (defend_strategy + defend_strategy[::-1]) / 2
+    # Clip strategies for safety
+    attack_strategy = np.clip(attack_strategy, 0, 1)
+    attack_strategy /= np.sum(attack_strategy)
+    defend_strategy = np.clip(defend_strategy, 0, 1)
+    defend_strategy /= np.sum(defend_strategy)
     # Return payoff matrix, both strategies, and the expected payoff
     return attack_strategy, defend_strategy, value
   
@@ -158,6 +184,21 @@ class DPAgent:
               payoff_matrix[i, j] = current_utility + next_expected_utility
           # Compute the equilibrium mixed strategies
           attack_strategy, defend_strategy, value = self.solve_mixtures(payoff_matrix)
+          # Check for exploitation
+          if self.side == "attacker" and self.exploit:
+            defend_strategy = self.soft_max(defend_strategy)
+            pure_values = payoff_matrix @ defend_strategy
+            value = np.min(pure_values)
+            attack_strategy = np.zeros(self.n_a + 1)
+            attack_strategy[np.abs(pure_values - value) < 1e-3] = 1.0
+            attack_strategy /= np.sum(attack_strategy)
+          if self.side == "defender" and self.exploit:
+            attack_strategy = self.soft_max(attack_strategy)
+            pure_values = attack_strategy @ payoff_matrix
+            value = np.max(pure_values)
+            defend_strategy = np.zeros(self.n_d + 1)
+            defend_strategy[np.abs(pure_values - value) < 1e-3] = 1.0
+            defend_strategy /= np.sum(defend_strategy)
           # Store the equilibrium policies
           self.attack_policies[stage - 1, capture_index, :] = attack_strategy
           self.defense_policies[stage - 1, capture_index, :] = defend_strategy
@@ -252,6 +293,21 @@ class DPAgent:
                 payoff_matrix[i, j] = current_utility + next_expected_utility
             # Compute the equilibrium mixed strategies
             attack_strategy, defend_strategy, value = self.solve_mixtures(payoff_matrix)
+            # Check for exploitation
+            if self.side == "attacker" and self.exploit:
+              defend_strategy = self.soft_max(defend_strategy)
+              pure_values = payoff_matrix @ defend_strategy
+              value = np.min(pure_values)
+              attack_strategy = np.zeros(attacking_troops + 1)
+              attack_strategy[np.abs(pure_values - value) < 1e-3] = 1.0
+              attack_strategy /= np.sum(attack_strategy)
+            if self.side == "defender" and self.exploit:
+              attack_strategy = self.soft_max(attack_strategy)
+              pure_values = attack_strategy @ payoff_matrix
+              value = np.max(pure_values)
+              defend_strategy = np.zeros(defending_troops + 1)
+              defend_strategy[np.abs(pure_values - value) < 1e-3] = 1.0
+              defend_strategy /= np.sum(defend_strategy)
             # Store the equilibrium policies
             self.attack_policies[stage - 1, attacking_troops, capture_index, :attacking_troops + 1] = attack_strategy
             self.defense_policies[stage - 1, attacking_troops, capture_index, :defending_troops + 1] = defend_strategy
