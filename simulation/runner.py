@@ -1,5 +1,4 @@
 from controllers.even_agent import EvenAgent
-from controllers.mcts_agent import MCTSAgent
 from controllers.random_agent import RandomAgent
 from simulation.environment import ColonelBlottoEnv
 from tqdm import tqdm
@@ -8,7 +7,7 @@ from tqdm import tqdm
 CONTROLLER_REGISTRY = {
     "random": RandomAgent,
     "even": EvenAgent,
-    "mcts": MCTSAgent,
+    "mcts": None,
     "dp_nash": None,
     "dp_exploit": None,
 }
@@ -43,8 +42,7 @@ def create_controller(
             retain_troops=retain,
             exploit=False,
         )
-
-    if name == "dp_exploit":
+    elif name == "dp_exploit":
         from controllers.dp_agent import DPAgent
 
         return DPAgent(
