@@ -2,13 +2,15 @@ from controllers.even_agent import EvenAgent
 from controllers.mcts_agent import MCTSAgent
 from controllers.random_agent import RandomAgent
 from simulation.environment import ColonelBlottoEnv
+from tqdm import tqdm
 
 
 CONTROLLER_REGISTRY = {
     "random": RandomAgent,
     "even": EvenAgent,
     "mcts": MCTSAgent,
-    "dp": None,
+    "dp_nash": None,
+    "dp_exploit": None,
 }
 
 
@@ -26,8 +28,9 @@ def create_controller(
     alpha: float,
     num_steps: int,
     retain: bool,
+    dp_temp: float,
 ):
-    if name == "dp":
+    if name == "dp_nash":
         from controllers.dp_agent import DPAgent
 
         return DPAgent(
@@ -38,6 +41,22 @@ def create_controller(
             memory=alpha,
             n_stages=num_steps,
             retain_troops=retain,
+            exploit=False,
+        )
+
+    if name == "dp_exploit":
+        from controllers.dp_agent import DPAgent
+
+        return DPAgent(
+            side=side,
+            n_a=n_att,
+            n_d=n_def,
+            theta=m / p,
+            memory=alpha,
+            n_stages=num_steps,
+            retain_troops=retain,
+            exploit=True,
+            temperature=dp_temp,
         )
 
     return CONTROLLER_REGISTRY[name](side)
@@ -55,12 +74,13 @@ def run_batch_simulation(
     alpha: float,
     c0: float,
     retain: bool,
+    dp_temp: float,
 ):
     all_records = []
-    attacker = create_controller(attacker_name, "attacker", n_att, n_def, m, p, alpha, num_steps, retain)
-    defender = create_controller(defender_name, "defender", n_att, n_def, m, p, alpha, num_steps, retain)
+    attacker = create_controller(attacker_name, "attacker", n_att, n_def, m, p, alpha, num_steps, retain, dp_temp)
+    defender = create_controller(defender_name, "defender", n_att, n_def, m, p, alpha, num_steps, retain, dp_temp)
 
-    for sim_id in range(sim_iters):
+    for sim_id in tqdm(range(sim_iters), desc="Simulations"):
         env = create_environment(n_att, n_def, m, p, alpha, c0, retain)
         state = env.reset()
 
@@ -102,6 +122,7 @@ def run_batch_simulation(
         "alpha": alpha,
         "c0": c0,
         "retain": retain,
+        "dp_temp": dp_temp,
     }
 
     return all_records, metadata
