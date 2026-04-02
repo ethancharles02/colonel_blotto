@@ -39,6 +39,13 @@ def create_controller(
             n_stages=num_steps,
             retain_troops=retain,
         )
+    elif name == "mcts":
+        from controllers.mcts_agent import MCTSAgent
+
+        return MCTSAgent(
+            side=side,
+            alpha=alpha
+        )
 
     return CONTROLLER_REGISTRY[name](side)
 

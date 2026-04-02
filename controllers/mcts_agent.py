@@ -116,13 +116,14 @@ class MCTSNode:
 
 
 class MCTSAgent:
-    def __init__(self, side: str, depth: int = 100, num_simulations_per_depth: int = 5):
+    def __init__(self, side: str, alpha: float = 0.5, depth: int = 100, num_simulations_per_depth: int = 5):
         if side not in {"attacker", "defender"}:
             raise ValueError(f"Unsupported side: {side}")
         self.mixture = 1
         self.depth = depth
         self.num_simulations_per_depth = num_simulations_per_depth
         self.player_type = SimulationPlayerType.ATTACKER if side == "attacker" else SimulationPlayerType.DEFENDER
+        self.alpha = alpha
 
         self.simulation_env = ColonelBlottoEnv(0, 0, 0, 0, 0, 0, True)
 
@@ -131,8 +132,8 @@ class MCTSAgent:
         self.simulation_env.n_att = state["n_att"]
         self.simulation_env.m = state["m"]
         self.simulation_env.p = state["p"]
-        self.simulation_env.alpha = 0.5
-        self.simulation_env.c_0 = 0.1
+        self.simulation_env.alpha = self.alpha
+        self.simulation_env.c_0 = state["c_t"]
 
         if get_num_troops(self.simulation_env, self.player_type) == 0:
             return 0
