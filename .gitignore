@@ -329,3 +329,6 @@ TSWLatexianTemp*
 __pycache__/
 */__pycache__/
 results/
+
+# Just for the report
+*.pdf
