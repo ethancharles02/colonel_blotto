@@ -1,6 +1,8 @@
 from controllers.even_agent import EvenAgent
 from controllers.random_agent import RandomAgent
+from controllers.retaining_heuristic_agent import RetainingHeuristicAgent
 from simulation.environment import ColonelBlottoEnv
+
 from tqdm import tqdm
 
 
@@ -8,6 +10,8 @@ CONTROLLER_REGISTRY = {
     "random": RandomAgent,
     "even": EvenAgent,
     "mcts": None,
+    "mc": None,
+    "retaining_heuristic": RetainingHeuristicAgent,
     "dp_nash": None,
     "dp_exploit": None,
 }
@@ -59,10 +63,11 @@ def create_controller(
     elif name == "mcts":
         from controllers.mcts_agent import MCTSAgent
 
-        return MCTSAgent(
-            side=side,
-            alpha=alpha
-        )
+        return MCTSAgent(side=side, alpha=alpha)
+    elif name == "mc":
+        from controllers.mc_agent import MCAgent
+
+        return MCAgent(side=side, alpha=alpha)
 
     return CONTROLLER_REGISTRY[name](side)
 
