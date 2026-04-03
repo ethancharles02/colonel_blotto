@@ -119,7 +119,7 @@ The search tree represents sequences of moves for the agent acting as either the
 
 As shown in figure~\ref{fig:mcts_tree}, Monte Carlo Tree Search consists of four phases: selection, expansion, simulation, and backpropagation.
 
-\paragraph{Selection and Expansion}:
+\paragraph{Selection and Expansion}
 The search proceeds for a fixed computational budget defined by a maximum number of node expansions (typically around 100 in our experiments). During each iteration, the algorithm traverses the existing tree from the root using a modified Upper Confidence Bound (UCB) selection rule. The UCB value for each node is computed from the average observed utility and the number of times the node has been visited relative to its parent, balancing exploration of under-sampled nodes with exploitation of high-performing ones.
 
 \paragraph{Simulation and Backpropagation}
