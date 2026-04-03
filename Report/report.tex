@@ -23,6 +23,8 @@
 %\usepackage{times} % assumes new font selection scheme installed
 %\usepackage{amsmath} % assumes amsmath package installed
 %\usepackage{amssymb}  % assumes amsmath package installed
+\usepackage{graphicx}
+\usepackage{url}
 
 \title{\LARGE \bf
 Make a Title Here
@@ -100,9 +102,39 @@ Subsection text here about the different parameters in the simulation
 Subsection text here about the different types of the simulation (retaining and not retaining?)
 \subsection{Controllers}
 Subsection text here about the different controllers we made
-\subsubsection{Random} Subsubsection text
-\subsubsection{Even} Subsubsection text
-\subsubsection{Monte Carlo Tree Search} Subsubsection text
+\subsubsection{Random}
+The Random agent selects uniformly at random from all valid troop allocations available to it. The agent does not attempt to model the opponent or reason about expected outcomes. Instead, it acts as a baseline policy for comparison with more sophisticated agents. Because its behavior is entirely stochastic, its performance provides a lower-bound benchmark for evaluating the effectiveness of the other agents.
+\subsubsection{Even}
+The Even agent deterministically divides its troops evenly across the two battlefields. If the total number of troops is not divisible by two, remaining troops are sent to the right battlefield. This agent represents a simple heuristic strategy that attempts to maintain balanced coverage of all battlefields without adapting to the opponent's behavior. It serves as a deterministic baseline against which more adaptive strategies can be compared.
+\subsubsection{Monte Carlo}
+The Monte Carlo agent is designed for the non-retaining variant of the simulation. In this setting, the perceived capture probability is ignored to simplify the evaluation process. This simplification reduces the complexity of the state space and allows the agent to evaluate all possible action combinations for the next turn.
+
+Rather than simulating entire games, the agent performs a one-step lookahead search. For each possible move available to the agent, the algorithm enumerates all possible combinations of moves by both players in the next turn. The resulting utility of each combination is computed, and the utilities corresponding to each candidate move are aggregated. The agent then selects the move that maximizes the total utility across all combinations that include that move. If multiple moves produce the same utility, one is selected uniformly at random.
+
+Although this agent is referred to as a Monte Carlo agent, it does not perform stochastic sampling of actions. Traditional Monte Carlo methods estimate expected outcomes through repeated random sampling of possible scenarios. In contrast, this agent deterministically enumerates all possible one-step action combinations and therefore does not constitute a true Monte Carlo simulation. Instead, it serves as a simple baseline evaluation method for the non-retaining variant of the game.
+\subsubsection{Monte Carlo Tree Search}
+This agent can be viewed as an extension of the Monte Carlo agent designed to handle the additional complexity introduced by troop retention. Because this additional complexity makes flat Monte Carlo evaluation impractical, we instead employ a Monte Carlo Tree Search (MCTS) algorithm to explore possible actions and estimate their expected utility.
+
+The search tree represents sequences of moves for the agent acting as either the attacker or defender. At each node corresponding to our agent's decision, possible troop allocations are expanded as child nodes. The opposing player's action is modeled using a stochastic policy, where the opponent's move is selected randomly. Future work could improve this component by incorporating a more accurate model of opponent behavior.
+
+As shown in figure~\ref{fig:mcts_tree}, Monte Carlo Tree Search consists of four phases: selection, expansion, simulation, and backpropagation.
+
+\paragraph{Selection and Expansion}:
+The search proceeds for a fixed computational budget defined by a maximum number of node expansions (typically around 100 in our experiments). During each iteration, the algorithm traverses the existing tree from the root using a modified Upper Confidence Bound (UCB) selection rule. The UCB value for each node is computed from the average observed utility and the number of times the node has been visited relative to its parent, balancing exploration of under-sampled nodes with exploitation of high-performing ones.
+
+\paragraph{Simulation and Backpropagation}
+Once a leaf node is selected, the algorithm performs several random rollout simulations from that state to estimate the expected utility of the position. The resulting utility is then backpropagated through the visited nodes, updating their statistics.
+
+After the search budget is exhausted, the agent selects the action corresponding to the child of the root node with the highest visit count, which represents the branch with the strongest empirical performance.
+% TODO fix the width on this image
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.5\textwidth]{mcts_tree}
+\caption{Example structure of Monte Carlo Tree Search. Adapted from \cite{mcts_wiki}.}
+\label{fig:mcts_tree}
+\end{figure}
+\subsubsection{Retaining Heuristic}
+The Heuristic agent prioritizes securing a battlefield outright before distributing troops more evenly. Concretely, when the agent does not yet have enough remaining troops to guarantee victory on both battlefields, it allocates all available troops to one battlefield chosen uniformly at random. Once its remaining troop count is sufficiently large that it could allocate equal numbers of troops to both battlefields and still exceed the opponent’s previous allocations, the agent switches to an even split across both battlefields.
 
 \section{RESULTS}
 Result text here (organized by controller maybe?)
@@ -119,23 +151,17 @@ Conclusion text
 
 
 \subsection{Future Works}
-
-Future work text
+\subsubsection{Monte Carlo Tree Search}
+When selecting what move the opposite side makes for a node, we are just randomly picking. Some improvements can be made here to either pick an average move (in terms of utility) or possibly pick the worst possible move the enemy could make in response. This could be an additional parameter to change how it decides.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{thebibliography}{99}
 
-% Example references
-\bibitem{c1}
-J.G.F. Francis, The QR Transformation I, {\it Comput. J.}, vol. 4, 1961, pp 265-271.
-
-\bibitem{c2}
-H. Kwakernaak and R. Sivan, {\it Modern Signals and Systems}, Prentice Hall, Englewood Cliffs, NJ; 1991.
-
-\bibitem{c3}
-D. Boley and R. Maier, "A Parallel QR Algorithm for the Non-Symmetric Eigenvalue Algorithm", {\it in Third SIAM Conference on Applied Linear Algebra}, Madison, WI, 1988, pp. A20.
+\bibitem{mcts_wiki}
+"Monte Carlo Tree Search", Wikipedia, Wikimedia Foundation,
+\url{https://en.wikipedia.org/wiki/Monte_Carlo_tree_search}
 
 \end{thebibliography}
 
