@@ -8,20 +8,26 @@ RESULTS_DIR="$REPO_ROOT/results"
 SBATCH_CMD="${SBATCH_CMD:-sbatch}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 OVERWRITE=0
+TARGET_JOB_COUNT=200
 
 usage() {
   cat <<'EOF'
-Usage: submit_jobs.sh [--overwrite]
+Usage: submit_jobs.sh [--overwrite] [--job-count <n>]
 
 Options:
-  --overwrite   Submit all combinations even if the expected CSV already exists
-  -h, --help    Show this help message
+  --overwrite       Submit all combinations even if the expected CSV already exists
+  --job-count <n>   Target number of submitted jobs (default: 200)
+  -h, --help        Show this help message
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --overwrite) OVERWRITE=1; shift ;;
+    --job-count)
+      TARGET_JOB_COUNT="$2"
+      shift 2
+      ;;
     -h|--help) usage; exit 0 ;;
     *)
       echo "Unknown argument: $1" >&2
@@ -31,6 +37,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if ! [[ "$TARGET_JOB_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+  echo "job-count must be a positive integer: $TARGET_JOB_COUNT" >&2
+  exit 1
+fi
+
 mkdir -p "$JOBS_DIR"
 
 SCANCEL_USER="${USER:-$(id -un)}"
@@ -39,9 +50,8 @@ scancel -u "$SCANCEL_USER" >/dev/null 2>&1 || true
 find "$JOBS_DIR" -mindepth 1 -maxdepth 1 \( -type f -o -type l \) -delete
 touch "$JOBS_DIR/.gitkeep"
 
-"$PYTHON_BIN" - "$REPO_ROOT" "$JOBS_DIR" "$RESULTS_DIR" "$OVERWRITE" <<'PY'
+"$PYTHON_BIN" - "$REPO_ROOT" "$JOBS_DIR" "$RESULTS_DIR" "$OVERWRITE" "$TARGET_JOB_COUNT" <<'PY'
 import csv
-import math
 import shlex
 import sys
 from pathlib import Path
@@ -50,6 +60,7 @@ repo_root = Path(sys.argv[1]).resolve()
 jobs_dir = Path(sys.argv[2]).resolve()
 results_dir = Path(sys.argv[3]).resolve()
 overwrite = bool(int(sys.argv[4]))
+target_job_count = int(sys.argv[5])
 sys.path.insert(0, str(repo_root))
 
 from simulation.experiment_manifest import AGENT_WEIGHTS, build_results_filename, get_agent_order, iter_parameter_sets
@@ -92,10 +103,19 @@ for row in rows:
 
 selected_rows.sort(key=lambda row: (-int(row["score"]), int(row["sequence"])))
 
-batch_count = math.ceil(len(selected_rows) / 5) if selected_rows else 0
-batches = [[] for _ in range(batch_count)]
-for index, row in enumerate(selected_rows):
-    batches[index % batch_count].append(row)
+job_count = min(target_job_count, len(selected_rows))
+batches = [[] for _ in range(job_count)]
+
+row_index = 0
+forward = True
+while row_index < len(selected_rows):
+    job_indices = range(job_count) if forward else range(job_count - 1, -1, -1)
+    for job_index in job_indices:
+        if row_index >= len(selected_rows):
+            break
+        batches[job_index].append(selected_rows[row_index])
+        row_index += 1
+    forward = not forward
 
 header = [
     "attacker",
@@ -196,7 +216,8 @@ echo "Batch completed successfully."
 
 print(
     "Prepared "
-    f"{len(selected_rows)} combinations across {len(batches)} batches; "
+    f"{len(selected_rows)} combinations across {len(batches)} batches "
+    f"(target_job_count={target_job_count}); "
     f"skipped {len(skipped_rows)} existing results; "
     f"overwrite={'on' if overwrite else 'off'}."
 )

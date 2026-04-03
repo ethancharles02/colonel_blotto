@@ -22,8 +22,8 @@ AGENT_WEIGHTS: dict[str, int] = {
 }
 
 AGENT_ORDERS: dict[bool, list[str]] = {
-    False: ["random", "even", "mc", "mcts", "dp_exploit", "dp_nash"],
-    True: ["random", "even", "retaining_heuristic", "dp_exploit", "dp_nash"],
+    False: ["random", "even", "mc", "dp_exploit", "dp_nash"],
+    True: ["random", "even", "retaining_heuristic", "mcts", "dp_exploit", "dp_nash"],
 }
 
 # Preserve the existing job sweep order from submit_jobs.sh.
