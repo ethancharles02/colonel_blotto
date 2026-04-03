@@ -4,24 +4,60 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 JOBS_DIR="$REPO_ROOT/jobs"
+RESULTS_DIR="$REPO_ROOT/results"
 SBATCH_CMD="${SBATCH_CMD:-sbatch}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
+OVERWRITE=0
+
+usage() {
+  cat <<'EOF'
+Usage: submit_jobs.sh [--overwrite]
+
+Options:
+  --overwrite   Submit all combinations even if the expected CSV already exists
+  -h, --help    Show this help message
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --overwrite) OVERWRITE=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage
+      exit 1
+      ;;
+  esac
+done
 
 mkdir -p "$JOBS_DIR"
-find "$JOBS_DIR" -maxdepth 1 -type f \( -name 'blotto_batch_*.csv' -o -name 'blotto_batch_*.sh' \) -delete
 
-"$PYTHON_BIN" - "$REPO_ROOT" "$JOBS_DIR" <<'PY'
+SCANCEL_USER="${USER:-$(id -un)}"
+scancel -u "$SCANCEL_USER" >/dev/null 2>&1 || true
+
+find "$JOBS_DIR" -mindepth 1 -maxdepth 1 \( -type f -o -type l \) -delete
+touch "$JOBS_DIR/.gitkeep"
+
+"$PYTHON_BIN" - "$REPO_ROOT" "$JOBS_DIR" "$RESULTS_DIR" "$OVERWRITE" <<'PY'
 import csv
+import math
 import shlex
 import sys
 from pathlib import Path
 
 repo_root = Path(sys.argv[1]).resolve()
 jobs_dir = Path(sys.argv[2]).resolve()
+results_dir = Path(sys.argv[3]).resolve()
+overwrite = bool(int(sys.argv[4]))
 
 nonretain_agents = ["random", "even", "mc", "mcts", "dp_nash", "dp_exploit"]
 retain_agents = ["random", "even", "retaining_heuristic", "dp_nash", "dp_exploit"]
-heavy_agents = {"mc", "mcts"}
+agent_weights = {
+    "mc": 5,
+    "mcts": 5,
+    "dp_nash": 2,
+}
 
 canonical = {
     "sim_iters": "1000",
@@ -71,51 +107,64 @@ parameter_sets.extend(
     for value in (0.0, 0.5)
 )
 
+
+def build_results_filename(row: dict[str, str]) -> str:
+    retain_bool = "True" if row["retain"] == "1" else "False"
+    return (
+        f"att-{row['attacker']}"
+        f"__def-{row['defender']}"
+        f"__sims-{row['sim_iters']}"
+        f"__steps-{row['num_steps']}"
+        f"__natt-{row['n_att']}"
+        f"__ndef-{row['n_def']}"
+        f"__m-{row['m']}"
+        f"__p-{row['p']}"
+        f"__alpha-{row['alpha']}"
+        f"__c0-{row['c0']}"
+        f"__retain-{retain_bool}.csv"
+    )
+
+
 rows = []
+sequence = 0
 for retain, agents in ((False, nonretain_agents), (True, retain_agents)):
     for attacker in agents:
         for defender in agents:
-            is_heavy = attacker in heavy_agents or defender in heavy_agents
+            score = agent_weights.get(attacker, 1) + agent_weights.get(defender, 1)
             for params in parameter_sets:
-                rows.append(
-                    {
-                        "attacker": attacker,
-                        "defender": defender,
-                        "retain": "1" if retain else "0",
-                        "sim_iters": params["sim_iters"],
-                        "num_steps": params["num_steps"],
-                        "n_att": params["n_att"],
-                        "n_def": params["n_def"],
-                        "m": params["m"],
-                        "p": params["p"],
-                        "alpha": params["alpha"],
-                        "c0": params["c0"],
-                        "is_heavy": "1" if is_heavy else "0",
-                    }
-                )
+                row = {
+                    "attacker": attacker,
+                    "defender": defender,
+                    "retain": "1" if retain else "0",
+                    "sim_iters": params["sim_iters"],
+                    "num_steps": params["num_steps"],
+                    "n_att": params["n_att"],
+                    "n_def": params["n_def"],
+                    "m": params["m"],
+                    "p": params["p"],
+                    "alpha": params["alpha"],
+                    "c0": params["c0"],
+                    "score": str(score),
+                    "sequence": str(sequence),
+                }
+                row["csv_path"] = str(results_dir / build_results_filename(row))
+                rows.append(row)
+                sequence += 1
 
-heavy_rows = [row for row in rows if row["is_heavy"] == "1"]
-light_rows = [row for row in rows if row["is_heavy"] == "0"]
+selected_rows = []
+skipped_rows = []
+for row in rows:
+    if not overwrite and Path(row["csv_path"]).exists():
+        skipped_rows.append(row)
+        continue
+    selected_rows.append(row)
 
-batches = []
-heavy_index = 0
-light_index = 0
+selected_rows.sort(key=lambda row: (-int(row["score"]), int(row["sequence"])))
 
-while heavy_index < len(heavy_rows):
-    batch = []
-    for _ in range(2):
-        if heavy_index < len(heavy_rows):
-            batch.append(heavy_rows[heavy_index])
-            heavy_index += 1
-    while len(batch) < 5 and light_index < len(light_rows):
-        batch.append(light_rows[light_index])
-        light_index += 1
-    batches.append(batch)
-
-while light_index < len(light_rows):
-    batch = light_rows[light_index:light_index + 5]
-    light_index += len(batch)
-    batches.append(batch)
+batch_count = math.ceil(len(selected_rows) / 5) if selected_rows else 0
+batches = [[] for _ in range(batch_count)]
+for index, row in enumerate(selected_rows):
+    batches[index % batch_count].append(row)
 
 header = [
     "attacker",
@@ -129,7 +178,8 @@ header = [
     "p",
     "alpha",
     "c0",
-    "is_heavy",
+    "score",
+    "csv_path",
 ]
 
 for index, batch in enumerate(batches, start=1):
@@ -142,10 +192,10 @@ for index, batch in enumerate(batches, start=1):
     with manifest_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=header)
         writer.writeheader()
-        writer.writerows(batch)
+        writer.writerows({key: row[key] for key in header} for row in batch)
 
     job_script = f"""#!/bin/bash --login
-#SBATCH --time=1:00:00
+#SBATCH --time=2:00:00
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=2
@@ -164,7 +214,7 @@ mamba activate baseball_env
 
 failures=0
 
-while IFS=',' read -r attacker defender retain sim_iters num_steps n_att n_def m p alpha c0 is_heavy; do
+while IFS=',' read -r attacker defender retain sim_iters num_steps n_att n_def m p alpha c0 score csv_path; do
   if [[ "$attacker" == "attacker" ]]; then
     continue
   fi
@@ -190,7 +240,7 @@ while IFS=',' read -r attacker defender retain sim_iters num_steps n_att n_def m
     cmd+=(--retain)
   fi
 
-  label="attacker=$attacker defender=$defender retain=$retain n_att=$n_att n_def=$n_def alpha=$alpha m=$m p=$p c0=$c0"
+  label="attacker=$attacker defender=$defender retain=$retain n_att=$n_att n_def=$n_def alpha=$alpha m=$m p=$p c0=$c0 score=$score"
   echo "START $label"
 
   if "${{cmd[@]}}"; then
@@ -213,19 +263,18 @@ echo "Batch completed successfully."
     job_path.write_text(job_script, encoding="utf-8")
     job_path.chmod(0o755)
 
-heavy_total = len(heavy_rows)
-light_total = len(light_rows)
 print(
     "Prepared "
-    f"{len(rows)} combinations across {len(batches)} batches "
-    f"({heavy_total} heavy, {light_total} light)."
+    f"{len(selected_rows)} combinations across {len(batches)} batches; "
+    f"skipped {len(skipped_rows)} existing results; "
+    f"overwrite={'on' if overwrite else 'off'}."
 )
 PY
 
 mapfile -t job_files < <(find "$JOBS_DIR" -maxdepth 1 -type f -name 'blotto_batch_*.sh' | sort)
 if [[ "${#job_files[@]}" -eq 0 ]]; then
-  echo "No job files were generated." >&2
-  exit 1
+  echo "No pending jobs to submit." >&2
+  exit 0
 fi
 
 read -r -a sbatch_parts <<< "$SBATCH_CMD"
