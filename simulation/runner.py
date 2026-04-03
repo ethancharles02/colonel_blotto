@@ -1,4 +1,6 @@
 from controllers.even_agent import EvenAgent
+from controllers.mc_agent import MCAgent
+from controllers.mcts_agent import MCTSAgent
 from controllers.random_agent import RandomAgent
 from controllers.retaining_heuristic_agent import RetainingHeuristicAgent
 from simulation.environment import ColonelBlottoEnv
@@ -9,8 +11,8 @@ from tqdm import tqdm
 CONTROLLER_REGISTRY = {
     "random": RandomAgent,
     "even": EvenAgent,
-    "mcts": None,
-    "mc": None,
+    "mc": MCAgent,
+    "mcts": MCTSAgent,
     "retaining_heuristic": RetainingHeuristicAgent,
     "dp_nash": None,
     "dp_exploit": None,
@@ -31,7 +33,6 @@ def create_controller(
     alpha: float,
     num_steps: int,
     retain: bool,
-    dp_temp: float,
 ):
     if name == "dp_nash":
         from controllers.dp_agent import DPAgent
@@ -58,7 +59,6 @@ def create_controller(
             n_stages=num_steps,
             retain_troops=retain,
             exploit=True,
-            temperature=dp_temp,
         )
     elif name == "mcts":
         from controllers.mcts_agent import MCTSAgent
@@ -84,11 +84,10 @@ def run_batch_simulation(
     alpha: float,
     c0: float,
     retain: bool,
-    dp_temp: float,
 ):
     all_records = []
-    attacker = create_controller(attacker_name, "attacker", n_att, n_def, m, p, alpha, num_steps, retain, dp_temp)
-    defender = create_controller(defender_name, "defender", n_att, n_def, m, p, alpha, num_steps, retain, dp_temp)
+    attacker = create_controller(attacker_name, "attacker", n_att, n_def, m, p, alpha, num_steps, retain)
+    defender = create_controller(defender_name, "defender", n_att, n_def, m, p, alpha, num_steps, retain)
 
     for sim_id in tqdm(range(sim_iters), desc="Simulations"):
         env = create_environment(n_att, n_def, m, p, alpha, c0, retain)
@@ -132,7 +131,6 @@ def run_batch_simulation(
         "alpha": alpha,
         "c0": c0,
         "retain": retain,
-        "dp_temp": dp_temp,
     }
 
     return all_records, metadata
