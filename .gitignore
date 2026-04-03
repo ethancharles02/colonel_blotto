@@ -248,6 +248,9 @@ pythontex-files-*/
 # titletoc
 *.ptc
 
+## Local editor settings
+.vscode/
+
 # todonotes
 *.tdo
 

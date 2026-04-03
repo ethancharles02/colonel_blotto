@@ -50,88 +50,19 @@ repo_root = Path(sys.argv[1]).resolve()
 jobs_dir = Path(sys.argv[2]).resolve()
 results_dir = Path(sys.argv[3]).resolve()
 overwrite = bool(int(sys.argv[4]))
+sys.path.insert(0, str(repo_root))
 
-nonretain_agents = ["random", "even", "mc", "mcts", "dp_nash", "dp_exploit"]
-retain_agents = ["random", "even", "retaining_heuristic", "dp_nash", "dp_exploit"]
-agent_weights = {
-    "mc": 5,
-    "mcts": 5,
-    "dp_nash": 2,
-}
-
-canonical = {
-    "sim_iters": "1000",
-    "num_steps": "100",
-    "n_att": "10",
-    "n_def": "10",
-    "m": "0.5",
-    "p": "1.0",
-    "alpha": "0.5",
-    "c0": "0.25",
-}
-
-parameter_sets = [canonical]
-parameter_sets.extend(
-    {
-        **canonical,
-        "n_att": str(value),
-    }
-    for value in (6, 8, 12, 14)
-)
-parameter_sets.extend(
-    {
-        **canonical,
-        "n_def": str(value),
-    }
-    for value in (6, 8, 12, 14)
-)
-parameter_sets.extend(
-    {
-        **canonical,
-        "alpha": f"{value:.1f}",
-    }
-    for value in (0.1, 0.3, 0.7, 0.9)
-)
-parameter_sets.extend(
-    {
-        **canonical,
-        "m": f"{value:.2f}".rstrip("0").rstrip(".") if value != 1.0 else "1.0",
-    }
-    for value in (0.25, 0.75, 1.0)
-)
-parameter_sets.extend(
-    {
-        **canonical,
-        "c0": f"{value:.1f}",
-    }
-    for value in (0.0, 0.5)
-)
-
-
-def build_results_filename(row: dict[str, str]) -> str:
-    retain_bool = "True" if row["retain"] == "1" else "False"
-    return (
-        f"att-{row['attacker']}"
-        f"__def-{row['defender']}"
-        f"__sims-{row['sim_iters']}"
-        f"__steps-{row['num_steps']}"
-        f"__natt-{row['n_att']}"
-        f"__ndef-{row['n_def']}"
-        f"__m-{row['m']}"
-        f"__p-{row['p']}"
-        f"__alpha-{row['alpha']}"
-        f"__c0-{row['c0']}"
-        f"__retain-{retain_bool}.csv"
-    )
+from simulation.experiment_manifest import AGENT_WEIGHTS, build_results_filename, get_agent_order, iter_parameter_sets
 
 
 rows = []
 sequence = 0
-for retain, agents in ((False, nonretain_agents), (True, retain_agents)):
+for retain in (False, True):
+    agents = get_agent_order(retain)
     for attacker in agents:
         for defender in agents:
-            score = agent_weights.get(attacker, 1) + agent_weights.get(defender, 1)
-            for params in parameter_sets:
+            score = AGENT_WEIGHTS.get(attacker, 1) + AGENT_WEIGHTS.get(defender, 1)
+            for params in iter_parameter_sets():
                 row = {
                     "attacker": attacker,
                     "defender": defender,
