@@ -9,7 +9,7 @@ class MCAgent:
         self.is_attacker = side == "attacker"
         self.alpha = alpha
         self.is_static = is_static
-        self.best_amount = None
+        self.best_amounts = None
         self.mixture = 1
         self.simulation_env = ColonelBlottoEnv(0, 0, 0, 0, 0, 0, False)
 
@@ -22,8 +22,8 @@ class MCAgent:
         Returns:
             int -- Move to make
         """
-        if self.is_static and self.best_amount is not None:
-            return self.best_amount
+        if self.is_static and self.best_amounts is not None:
+            return np.random.choice(self.best_amounts)
 
         self.simulation_env.n_def = state["n_def"]
         self.simulation_env.n_att = state["n_att"]
@@ -40,23 +40,23 @@ class MCAgent:
         # there is a limited number of them
         player_troops = state["n_att"] if self.is_attacker else state["n_def"]
         other_player_troops = state["n_def"] if self.is_attacker else state["n_att"]
-        for player_amount in range(player_troops):
+        for player_amount in range(player_troops + 1):
             if player_amount not in simulation_data:
-                simulation_data[player_amount] = [0, 0]
-            simulation_data[player_amount][0] += 1
-            for other_player_amount in range(other_player_troops):
+                simulation_data[player_amount] = 0
+            for other_player_amount in range(other_player_troops + 1):
                 attacker_amount = player_amount if self.is_attacker else other_player_amount
                 defender_amount = other_player_amount if self.is_attacker else player_amount
+                self.simulation_env.c_t = state["c_t"]
                 _, reward_a, reward_d, _ = self.simulation_env.step(attacker_amount, defender_amount)
                 reward = reward_a if self.is_attacker else reward_d
-                simulation_data[player_amount][1] += reward
+                simulation_data[player_amount] += reward
 
-        averaged_scores = [[amount, data[1] / data[0] if data[0] > 0 else -np.inf] for amount, data in simulation_data.items()]
-        sorted_amounts = sorted(averaged_scores, key=lambda x: x[1], reverse=True)
+        sorted_amounts = sorted(simulation_data.items(), key=lambda x: x[1], reverse=True)
 
-        best_amount = sorted_amounts[0][0]
+        best_utility = sorted_amounts[0][1]
+        best_amounts = [amount for (amount, utility) in sorted_amounts if utility == best_utility]
 
         if self.is_static:
-            self.best_amount = best_amount
+            self.best_amounts = best_amounts
 
-        return best_amount
+        return np.random.choice(self.best_amounts)

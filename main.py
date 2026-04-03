@@ -1,8 +1,8 @@
-import argparse
 from datetime import datetime
 from pathlib import Path
-
+import argparse
 import numpy as np
+import sys
 
 from simulation.analysis import save_outputs
 from simulation.runner import CONTROLLER_REGISTRY, run_batch_simulation
@@ -36,8 +36,9 @@ def make_results_dir(base_results_dir: str, attacker: str, defender: str, retain
     return results_dir
 
 
-def main():
-    args = parse_args()
+def main(args: bool = None):
+    if args is None:
+        args = parse_args()
 
     if args.seed is not None:
         np.random.seed(args.seed)
@@ -71,6 +72,47 @@ def main():
     if not summary["plots_saved"]:
         print(f"Plots were not saved: {summary['plot_error']}")
 
+class MockArgs:
+    def __init__(
+            self,
+            attacker: str,
+            defender: str,
+            sim_iters: int = 25,
+            num_steps: int = 100,
+            n_att: int = 10,
+            n_def: int = 10,
+            m: float = 1,
+            p: float = 2,
+            alpha: float = 0.5,
+            c0: float = 0.1,
+            dp_temp: float = 0.0,
+            retain: bool = False,
+            seed: int = None,
+            results_dir = "results",
+            no_show_plots = False):
+        self.attacker = attacker
+        self.defender = defender
+        self.sim_iters = sim_iters
+        self.num_steps = num_steps
+        self.n_att = n_att
+        self.n_def = n_def
+        self.m = m
+        self.p = p
+        self.alpha = alpha
+        self.c0 = c0
+        self.dp_temp = dp_temp
+        self.retain = retain
+        self.seed = seed
+        self.results_dir = results_dir
+        self.no_show_plots = no_show_plots
 
 if __name__ == "__main__":
-    main()
+    args = None
+    if len(sys.argv) == 1:
+        print("No arguments provided, running default configuration")
+        args = MockArgs(
+            attacker = "random",
+            defender = "mc",
+            retain=False
+        )
+    main(args)
