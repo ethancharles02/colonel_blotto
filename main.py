@@ -1,10 +1,9 @@
-from datetime import datetime
 from pathlib import Path
 import argparse
 import numpy as np
 import sys
 
-from simulation.analysis import save_outputs
+from simulation.analysis import save_csv, summarize_results
 from simulation.runner import CONTROLLER_REGISTRY, run_batch_simulation
 
 
@@ -27,12 +26,20 @@ def parse_args():
     return parser.parse_args()
 
 
-def make_results_dir(base_results_dir: str, attacker: str, defender: str, retain: bool) -> Path:
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    mode = "retain" if retain else "baseline"
-    results_dir = Path(base_results_dir) / f"{timestamp}_{attacker}_vs_{defender}_{mode}"
-    results_dir.mkdir(parents=True, exist_ok=True)
-    return results_dir
+def build_results_filename(args) -> str:
+    return (
+        f"att-{args.attacker}"
+        f"__def-{args.defender}"
+        f"__sims-{args.sim_iters}"
+        f"__steps-{args.num_steps}"
+        f"__natt-{args.n_att}"
+        f"__ndef-{args.n_def}"
+        f"__m-{args.m}"
+        f"__p-{args.p}"
+        f"__alpha-{args.alpha}"
+        f"__c0-{args.c0}"
+        f"__retain-{args.retain}.csv"
+    )
 
 
 def main(args: bool = None):
@@ -42,7 +49,8 @@ def main(args: bool = None):
     if args.seed is not None:
         np.random.seed(args.seed)
 
-    results_dir = make_results_dir(args.results_dir, args.attacker, args.defender, args.retain)
+    results_path = Path(args.results_dir)
+    csv_path = results_path / build_results_filename(args)
 
     all_records, metadata = run_batch_simulation(
         attacker_name=args.attacker,
@@ -59,16 +67,20 @@ def main(args: bool = None):
     )
 
     metadata["seed"] = args.seed
-    metadata["results_dir"] = str(results_dir)
+    metadata["results_path"] = str(csv_path)
+    df_all = save_csv(all_records, csv_path)
+    summary = summarize_results(df_all, csv_path)
 
-    summary = save_outputs(all_records, metadata, results_dir, show_plots=not args.no_show_plots)
-
-    print(f"Results saved to: {summary['results_dir']}")
+    print(f"Results saved to: {summary['csv_path']}")
     print(f"Controllers: attacker={args.attacker}, defender={args.defender}")
-    print(f"Mean attacker reward: {summary['mean_reward_a']:.4f}")
-    print(f"Mean defender reward: {summary['mean_reward_d']:.4f}")
-    if not summary["plots_saved"]:
-        print(f"Plots were not saved: {summary['plot_error']}")
+    print(f"Mean defender utility per stage: {summary['mean_defender_utility']:.4f}")
+    print(f"Mean attacker utility per stage: {summary['mean_attacker_utility']:.4f}")
+    print(f"Mean final defender utility per simulation: {summary['mean_final_defender_utility']:.4f}")
+    print(f"Mean final attacker utility per simulation: {summary['mean_final_attacker_utility']:.4f}")
+    print(f"Defection rate: {summary['defection_rate']:.4f}")
+    print(f"Mean capture rate: {summary['mean_capture_rate']:.4f}")
+    print(f"Mean attacker troops captured per stage: {summary['mean_attacker_troops_captured']:.4f}")
+    print(f"Mean defender troops captured per stage: {summary['mean_defender_troops_captured']:.4f}")
 
 class MockArgs:
     def __init__(

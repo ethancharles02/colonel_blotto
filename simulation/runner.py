@@ -72,6 +72,47 @@ def create_controller(
     return CONTROLLER_REGISTRY[name](side)
 
 
+def build_stage_record(
+    sim_id: int,
+    stage: int,
+    attacker_name: str,
+    defender_name: str,
+    retain: bool,
+    alpha: float,
+    m: float,
+    p: float,
+    c0: float,
+    perceived_capture: float,
+    attacker_action_bf1: int,
+    defender_action_bf1: int,
+    utility_before: float,
+    info: dict,
+):
+    utility_current = info["def_utility"]
+    return {
+        "sim_id": sim_id,
+        "stage": stage,
+        "attacker_controller": attacker_name,
+        "defender_controller": defender_name,
+        "retain": retain,
+        "alpha": alpha,
+        "m": m,
+        "p": p,
+        "theta": m / p,
+        "c0": c0,
+        "perceived_capture": perceived_capture,
+        "attacker_action_bf1": attacker_action_bf1,
+        "defender_action_bf1": defender_action_bf1,
+        "defection": info["defect"],
+        "attacker_troops_captured": info["attacker_captured"],
+        "defender_troops_captured": info["defender_captured"],
+        "capture_rate": info["capture_rate"],
+        "utility_before": utility_before,
+        "utility_current": utility_current,
+        "utility_after": utility_before + utility_current,
+    }
+
+
 def run_batch_simulation(
     attacker_name: str,
     defender_name: str,
@@ -92,8 +133,10 @@ def run_batch_simulation(
     for sim_id in tqdm(range(sim_iters), desc="Simulations"):
         env = create_environment(n_att, n_def, m, p, alpha, c0, retain)
         state = env.reset()
+        defender_utility_total = 0
 
         for step in range(num_steps):
+            perceived_capture = state["c_t"]
             controller_state = dict(state)
             controller_state["stage"] = step + 1
 
@@ -103,20 +146,25 @@ def run_batch_simulation(
             next_state, reward_a, reward_d, info = env.step(act_a, act_d)
 
             all_records.append(
-                {
-                    "sim_id": sim_id,
-                    "step": step,
-                    "act_a": act_a,
-                    "act_d": act_d,
-                    "reward_a": reward_a,
-                    "reward_d": reward_d,
-                    "capture_rate": info["capture_rate"],
-                    "captured_troops": info["capture_rate"] * state["n_att"],
-                    "n_att": state["n_att"],
-                    "n_def": state["n_def"],
-                }
+                build_stage_record(
+                    sim_id=sim_id,
+                    stage=step + 1,
+                    attacker_name=attacker_name,
+                    defender_name=defender_name,
+                    retain=retain,
+                    alpha=alpha,
+                    m=m,
+                    p=p,
+                    c0=c0,
+                    perceived_capture=perceived_capture,
+                    attacker_action_bf1=act_a,
+                    defender_action_bf1=act_d,
+                    utility_before=defender_utility_total,
+                    info=info,
+                )
             )
 
+            defender_utility_total += reward_d
             state = next_state
 
     metadata = {

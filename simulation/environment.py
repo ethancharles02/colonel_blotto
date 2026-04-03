@@ -43,6 +43,8 @@ class ColonelBlottoEnv:
         current_m = m_override if m_override is not None else self.m
         theta = current_m / self.p
         defect = self.c_t > theta
+        attacker_captured = 0
+        defender_captured = 0
 
         if defect:
             def_utility = 1
@@ -57,11 +59,17 @@ class ColonelBlottoEnv:
             def_2 = self.n_def - action_def
 
             def_wins_1 = def_1 >= att_1
-            num_captures_1 = att_1 if def_wins_1 else -def_1
+            attacker_captured_1 = att_1 if def_wins_1 else 0
+            defender_captured_1 = 0 if def_wins_1 else def_1
+            num_captures_1 = attacker_captured_1 - defender_captured_1
             def_wins_2 = def_2 >= att_2
-            num_captures_2 = att_2 if def_wins_2 else -def_2
+            attacker_captured_2 = att_2 if def_wins_2 else 0
+            defender_captured_2 = 0 if def_wins_2 else def_2
+            num_captures_2 = attacker_captured_2 - defender_captured_2
 
             total_captures = num_captures_1 + num_captures_2
+            attacker_captured = attacker_captured_1 + attacker_captured_2
+            defender_captured = defender_captured_1 + defender_captured_2
 
             if def_wins_1 and def_wins_2:
                 def_utility = 1
@@ -72,12 +80,7 @@ class ColonelBlottoEnv:
 
             att_utility = -def_utility
 
-            captured_troops = 0
-            if def_wins_1:
-                captured_troops += att_1
-            if def_wins_2:
-                captured_troops += att_2
-            capture_rate = captured_troops / self.n_att if self.n_att > 0 else 0
+            capture_rate = attacker_captured / self.n_att if self.n_att > 0 else 0
 
             if self.retain:
                 self.n_def += total_captures
@@ -91,6 +94,8 @@ class ColonelBlottoEnv:
             "def_utility": def_utility,
             "att_utility": att_utility,
             "capture_rate": capture_rate,
+            "attacker_captured": attacker_captured,
+            "defender_captured": defender_captured,
             "new_c_t": self.c_t,
         }
         self.history.append(step_info)
