@@ -331,3 +331,8 @@ __pycache__/
 
 # Just for the report
 *.pdf
+
+# Generated Slurm job artifacts
+jobs/*.csv
+jobs/*.sh
+jobs/*.out
