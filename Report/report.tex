@@ -25,6 +25,7 @@
 %\usepackage{amssymb}  % assumes amsmath package installed
 \usepackage{graphicx}
 \usepackage{url}
+\usepackage{hyperref}
 
 \title{\LARGE \bf
 Make a Title Here
@@ -61,7 +62,7 @@ Make a Title Here
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{abstract}
 
-Amazing Abstract Here
+We are interested in researching a game theoretical scenario for which no obvious equilibrium state exists. Specifically, we decided to look at a series of Colonel Blotto games, both the canonical game as well as a game with a retaining structure. We wanted to see what controllers could primarily maximize utility, and secondarily minimize the game-to-game variance.
 
 \end{abstract}
 
@@ -69,7 +70,9 @@ Amazing Abstract Here
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{INTRODUCTION}
 
-Introduction Here
+Consider a classic variation of colonel blotto game with two battlefields and two generals, one defending general and one attacking general. Both generals have n troops and must decide how to allocate these troops between the two battlefields. For each battlefield, the defender wins if they have at least as many troops as the attacker (meaning they win in a tie) and the attacker wins if they have more troops than the defender. The total utility of the game is 1 if the defender defends both battlefields, 0 if they defend one of the battlefields, and -1 if they defend neither battlefield. It is worth noting that a utility of -1 isn’t possible in the classic game, as when attacker and defender have the same troop count, it’s impossible for the attack to win both fields. The defending general wants to maximize utility while the attacking general wants to minimize it, and they must simultaneously commit to a strategy without knowing the strategy of the other general.
+The defending troops will do whatever they are told. The attacking troops, however, receive utility m for obeying orders (as opposed to defecting) and are penalized utility p if they are captured during an attack. If X is the perceived mixed strategy of the attacking general and Y is the perceived mixed strategy of the defending general, the attacking troops will defect if the expected capture probability C(X, Y) <= $\vartheta$, where $\vartheta$ is equal to m/p. The defending general may manipulate their mixture Y in order to take advantage of this deterrence dynamic. The attacking general must be careful about their own mixed strategy in order to prevent their troops from defecting.
+When $\frac{1}{2} \leq \vartheta < \frac{3\lfloor n/2 \rfloor+1}{4\lfloor n/2 \rfloor+2}$ (which goes to $\frac{3}{4}$ in the limit), there do not exist Nash equilibrium values of X and Y. In other words, it is not clear what rational generals would do in this situation.
 
 \subsection{Introduction Subsection}
 
@@ -161,7 +164,7 @@ When selecting what move the opposite side makes for a node, we are just randoml
 
 \bibitem{mcts_wiki}
 "Monte Carlo Tree Search", Wikipedia, Wikimedia Foundation,
-\url{https://en.wikipedia.org/wiki/Monte_Carlo_tree_search}
+% \url{https://en.wikipedia.org/wiki/Monte_Carlo_tree_search}
 
 \end{thebibliography}
 
