@@ -312,14 +312,26 @@ The Monte Carlo Tree Search (MCTS) controller exhibited highly variable performa
 
 \subsection{Conclusions}
 
-Conclusion text
+This project studied how a range of controllers behave in Colonel Blotto variants with deterrence and troop retention, particularly in settings where equilibrium behavior is not immediately obvious. Across both retaining and non-retaining games, the most consistent theme was that controller performance depended not only on the game parameters but also on whether the objective was security or exploitation. In particular, \texttt{dp\_nash} provided strong worst-case protection, while more exploitative controllers could achieve higher utility against weak or predictable opponents.
+
+The results also showed that the retaining and non-retaining variants produce qualitatively different strategic behavior. In the non-retaining setting, the main effect of a controller is often visible through immediate action selection, while in the retaining setting early advantages can compound over time and amplify small strategic differences. Taken together, these results suggest that there is no single universally best controller in this class of games. Instead, the best choice depends on whether the controller is being used to guarantee robustness against adversarial play or to exploit structure in the opponent's behavior.
 
 
 \subsection{Future Works}
+\subsubsection{Dynamic Programming Resolution}
+The Dynamic Programming controllers rely on a discretization of perceived capture probability into 100 bins. This makes the state space tractable, but it also introduces approximation error when the true perceived capture probability is mapped to the nearest bin. A natural next step would be to study how sensitive the policies and values are to this resolution, and to investigate finer discretizations, adaptive discretizations, or continuous approximations that preserve tractability while reducing quantization error.
+
+\subsubsection{Dynamic Programming Opponent Models}
+The current \texttt{dp\_exploit} controller computes a best response to an opponent that is assumed to play uniformly at random over all legal troop allocations. This makes it a useful exploitation baseline, but it is a limited model of realistic opponent behavior. Future work could replace this assumption with empirical opponent models, learned policies, or iterative best-response procedures that adapt to the strategies actually observed during play.
+
 \subsubsection{Monte Carlo Tree Search}
 When selecting what move the opposite side makes for a node, we are just randomly picking. Some improvements can be made here to either pick an average move (in terms of utility) or possibly pick the worst possible move the enemy could make in response. This could be an additional parameter to change how it decides.
 
-Additionaly, there are different variations of the Colonel Blotto game where defenders can save troops for future larger 'waves' of troops. This and other structures can lead to more complex dynamics that can better simulate real world scenarios.
+\subsubsection{Scaling Beyond Two Battlefields}
+This study focused on the two-battlefield version of Colonel Blotto in order to make the controller comparisons tractable and interpretable. Extending these experiments to games with more battlefields would provide a stronger test of whether the same security-versus-exploitation tradeoff persists in richer strategic settings. Such extensions would also make it possible to study whether simple heuristics remain competitive as the action space grows.
+
+\subsubsection{Longer Horizons and Statistical Validation}
+Although each controller matchup was simulated many times, there is still value in pushing the experiments further through longer horizons, additional repetitions, and more explicit statistical reporting. Future work could include confidence intervals, sensitivity analysis across parameter settings, and more systematic robustness checks to better separate persistent strategic effects from sampling variability. This would be especially useful for evaluating controllers such as MCTS whose observed performance appears to be more variable.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
