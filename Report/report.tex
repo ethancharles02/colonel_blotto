@@ -74,26 +74,6 @@ Consider a classic variation of colonel blotto game with two battlefields and tw
 The defending troops will do whatever they are told. The attacking troops, however, receive utility m for obeying orders (as opposed to defecting) and are penalized utility p if they are captured during an attack. If X is the perceived mixed strategy of the attacking general and Y is the perceived mixed strategy of the defending general, the attacking troops will defect if the expected capture probability C(X, Y) <= $\vartheta$, where $\vartheta$ is equal to m/p. The defending general may manipulate their mixture Y in order to take advantage of this deterrence dynamic. The attacking general must be careful about their own mixed strategy in order to prevent their troops from defecting.
 When $\frac{1}{2} \leq \vartheta < \frac{3\lfloor n/2 \rfloor+1}{4\lfloor n/2 \rfloor+2}$ (which goes to $\frac{3}{4}$ in the limit), there do not exist Nash equilibrium values of X and Y. In other words, it is not clear what rational generals would do in this situation.
 
-\subsection{Introduction Subsection}
-
-Subsection text here
-
-\subsubsection{Subsubsection here} Subsubsection text
-
-\begin{table}
-\caption{An Example of a Table}
-\label{table_example}
-\begin{center}
-\begin{tabular}{|c||c|}
-\hline
-One & Two\\
-\hline
-Three & Four\\
-\hline
-\end{tabular}
-\end{center}
-\end{table}
-
 \section{RELATED WORK}
 Related work text here
 
@@ -142,8 +122,18 @@ The Heuristic agent prioritizes securing a battlefield outright before distribut
 \section{RESULTS}
 Result text here (organized by controller maybe?)
 
-\section{DISCUSSION}
+\section{OBSERVATIONS}
 Discussion text here
+\subsection{Tristan Discussion Here}
+\subsection{Bryce Discussion Here}
+\subsection{Monte Carlo Based Controllers}
+An interesting behavior was observed with the Monte Carlo (MC) controller. In scenarios where the number of attackers and defenders was equal, the MC controller behaved identically to the Random controller. This occurs because, under these conditions, the Monte Carlo sampling procedure produced uniform utility estimates across the available actions. As a result, the policy induced by the MC controller was effectively equivalent to selecting actions uniformly at random.
+
+This observation suggests that, in non-retaining games of this type, uniform random action selection can constitute a viable baseline strategy when the expected utilities of the available actions are symmetric. In other words, when no action yields a consistently higher payoff under the sampled rollouts, the MC controller does not develop a meaningful preference and defaults to behavior indistinguishable from random play.
+
+A second observation arises in cases where the number of attackers exceeds the number of defenders. Under these conditions, the Dynamic Programming (DP) Exploit controller was able to achieve higher performance against the MC controller than against the Random controller. This result is somewhat counterintuitive, as the Exploit controller was explicitly designed to exploit uniformly random policies. One possible explanation is that the MC controller introduces subtle biases in action selection due to sampling variance or rollout structure, which the exploitative strategy can leverage more effectively than pure uniform randomness.
+
+The Monte Carlo Tree Search (MCTS) controller exhibited highly variable performance across trials. In some cases, it achieved strong outcomes, while in others it performed significantly worse than the simpler baseline controllers. One possible explanation for this inconsistency is the simulation policy used during the expansion and rollout phases of the MCTS algorithm. If the rollout simulations do not accurately reflect the true value of game states, the resulting value estimates may misguide the tree search process. Alternatively, the observed variability may be attributable to implementation errors or insufficient exploration within the search tree. Further investigation is required to determine the primary cause of this behavior.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{CONCLUSIONS AND FUTURE WORKS}
