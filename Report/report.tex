@@ -28,7 +28,7 @@
 \usepackage{hyperref}
 
 \title{\LARGE \bf
-Make a Title Here
+An Analysis of Colonel Blotto Strategies in Non-Equilibrium Scenarios
 }
 
 %\author{ \parbox{3 in}{\centering Huibert Kwakernaak*
@@ -71,28 +71,56 @@ We are interested in researching a game theoretical scenario for which no obviou
 \section{INTRODUCTION}
 
 Consider a classic variation of colonel blotto game with two battlefields and two generals, one defending general and one attacking general. Both generals have n troops and must decide how to allocate these troops between the two battlefields. For each battlefield, the defender wins if they have at least as many troops as the attacker (meaning they win in a tie) and the attacker wins if they have more troops than the defender. The total utility of the game is 1 if the defender defends both battlefields, 0 if they defend one of the battlefields, and -1 if they defend neither battlefield. It is worth noting that a utility of -1 isn’t possible in the classic game, as when attacker and defender have the same troop count, it’s impossible for the attack to win both fields. The defending general wants to maximize utility while the attacking general wants to minimize it, and they must simultaneously commit to a strategy without knowing the strategy of the other general.
-The defending troops will do whatever they are told. The attacking troops, however, receive utility m for obeying orders (as opposed to defecting) and are penalized utility p if they are captured during an attack. If X is the perceived mixed strategy of the attacking general and Y is the perceived mixed strategy of the defending general, the attacking troops will defect if the expected capture probability C(X, Y) <= $\vartheta$, where $\vartheta$ is equal to m/p. The defending general may manipulate their mixture Y in order to take advantage of this deterrence dynamic. The attacking general must be careful about their own mixed strategy in order to prevent their troops from defecting.
-When $\frac{1}{2} \leq \vartheta < \frac{3\lfloor n/2 \rfloor+1}{4\lfloor n/2 \rfloor+2}$ (which goes to $\frac{3}{4}$ in the limit), there do not exist Nash equilibrium values of X and Y. In other words, it is not clear what rational generals would do in this situation.
 
-\subsection{Introduction Subsection}
+To illustrate the game mechanics, consider a simple one-shot game with 2 troops and 2 battlefields. Table~\ref{table_utility} shows the utility outcomes for all possible strategy combinations, and Table~\ref{table_capture} shows the corresponding capture rates for attacking troops.
 
-Subsection text here
-
-\subsubsection{Subsubsection here} Subsubsection text
-
-\begin{table}
-\caption{An Example of a Table}
-\label{table_example}
+\begin{table}[htbp]
+\caption{Utility Matrix for One-Shot Colonel Blotto Game (2 troops, 2 battlefields). Rows represent defender allocations, columns represent attacker allocations. Values indicate utility from the defender's perspective.}
+\label{table_utility}
 \begin{center}
-\begin{tabular}{|c||c|}
+\begin{tabular}{|c||c|c|c|}
 \hline
-One & Two\\
+\textbf{Def $\backslash$ Att} & \textbf{(2,0)} & \textbf{(1,1)} & \textbf{(0,2)} \\
 \hline
-Three & Four\\
+\hline
+\textbf{(2,0)} & 1 & 0 & 0 \\
+\hline
+\textbf{(1,1)} & 0 & 1 & 0 \\
+\hline
+\textbf{(0,2)} & 0 & 0 & 1 \\
 \hline
 \end{tabular}
 \end{center}
 \end{table}
+
+\begin{table}[htbp]
+\caption{Capture Rate Matrix for One-Shot Colonel Blotto Game (2 troops, 2 battlefields). Rows represent defender allocations, columns represent attacker allocations. Values indicate the fraction of attacking troops captured.}
+\label{table_capture}
+\begin{center}
+\begin{tabular}{|c||c|c|c|}
+\hline
+\textbf{Def $\backslash$ Att} & \textbf{(2,0)} & \textbf{(1,1)} & \textbf{(0,2)} \\
+\hline
+\hline
+\textbf{(2,0)} & 1.0 & 0.5 & 0.0 \\
+\hline
+\textbf{(1,1)} & 0.5 & 1.0 & 0.5 \\
+\hline
+\textbf{(0,2)} & 0.0 & 0.5 & 1.0 \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+The defending troops will do whatever they are told. The attacking troops, however, receive utility m for obeying orders (as opposed to defecting) and are penalized utility p if they are captured during an attack. If X is the perceived mixed strategy of the attacking general and Y is the perceived mixed strategy of the defending general, the attacking troops will defect if the expected capture probability C(X, Y) <= $\vartheta$, where $\vartheta$ is equal to m/p. The defending general may manipulate their mixture Y in order to take advantage of this deterrence dynamic. The attacking general must be careful about their own mixed strategy in order to prevent their troops from defecting.
+
+When $\frac{1}{2} \leq \vartheta < \frac{3\lfloor n/2 \rfloor+1}{4\lfloor n/2 \rfloor+2}$ (which goes to $\frac{3}{4}$ in the limit), there do not exist Nash equilibrium values of X and Y. In other words, it is not clear what rational generals would do in this situation.
+
+\subsection{Troop Retention Variation}
+
+In a variation on the classic colonel blotto game, both generals retain any troops they capture from the opponent. This variation adds a different dynamic to the game that is far more likely to result in an equilibrium state (ie either the attacker or defender have enough troops to win both battlefields every time). This leads to strategies that are less concerned with short term utility more about troops acquisition.
+
+\subsubsection{Subsubsection here} Subsubsection text
 
 \section{RELATED WORK}
 Related work text here
@@ -157,6 +185,7 @@ Conclusion text
 \subsubsection{Monte Carlo Tree Search}
 When selecting what move the opposite side makes for a node, we are just randomly picking. Some improvements can be made here to either pick an average move (in terms of utility) or possibly pick the worst possible move the enemy could make in response. This could be an additional parameter to change how it decides.
 
+Additionaly, there are different variations of the Colonel Blotto game where defenders can save troops for future larger 'waves' of troops. This and other structures can lead to more complex dynamics that can better simulate real world scenarios.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
