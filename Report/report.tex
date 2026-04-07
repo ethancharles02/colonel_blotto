@@ -72,6 +72,7 @@ We are interested in researching a game theoretical scenario for which no obviou
 
 Consider a classic variation of colonel blotto game with two battlefields and two generals, one defending general and one attacking general. Both generals have n troops and must decide how to allocate these troops between the two battlefields. For each battlefield, the defender wins if they have at least as many troops as the attacker (meaning they win in a tie) and the attacker wins if they have more troops than the defender. The total utility of the game is 1 if the defender defends both battlefields, 0 if they defend one of the battlefields, and -1 if they defend neither battlefield. It is worth noting that a utility of -1 isn’t possible in the classic game, as when attacker and defender have the same troop count, it’s impossible for the attack to win both fields. The defending general wants to maximize utility while the attacking general wants to minimize it, and they must simultaneously commit to a strategy without knowing the strategy of the other general.
 
+<<<<<<< HEAD
 To illustrate the game mechanics, consider a simple one-shot game with 2 troops and 2 battlefields. Table~\ref{table_utility} shows the utility outcomes for all possible strategy combinations, and Table~\ref{table_capture} shows the corresponding capture rates for attacking troops.
 
 \begin{table}[htbp]
@@ -122,6 +123,8 @@ In a variation on the classic colonel blotto game, both generals retain any troo
 
 \subsubsection{Subsubsection here} Subsubsection text
 
+=======
+>>>>>>> a770457d18ce7521981f1cd060cb37bdb8dc8753
 \section{RELATED WORK}
 Related work text here
 
@@ -170,8 +173,18 @@ The Heuristic agent prioritizes securing a battlefield outright before distribut
 \section{RESULTS}
 Result text here (organized by controller maybe?)
 
-\section{DISCUSSION}
+\section{OBSERVATIONS}
 Discussion text here
+\subsection{Tristan Discussion Here}
+\subsection{Bryce Discussion Here}
+\subsection{Monte Carlo Based Controllers}
+An interesting behavior was observed with the Monte Carlo (MC) controller. In scenarios where the number of attackers and defenders was equal, the MC controller behaved identically to the Random controller. This occurs because, under these conditions, the Monte Carlo sampling procedure produced uniform utility estimates across the available actions. As a result, the policy induced by the MC controller was effectively equivalent to selecting actions uniformly at random.
+
+This observation suggests that, in non-retaining games of this type, uniform random action selection can constitute a viable baseline strategy when the expected utilities of the available actions are symmetric. In other words, when no action yields a consistently higher payoff under the sampled rollouts, the MC controller does not develop a meaningful preference and defaults to behavior indistinguishable from random play.
+
+A second observation arises in cases where the number of attackers exceeds the number of defenders. Under these conditions, the Dynamic Programming (DP) Exploit controller was able to achieve higher performance against the MC controller than against the Random controller. This result is somewhat counterintuitive, as the Exploit controller was explicitly designed to exploit uniformly random policies. One possible explanation is that the MC controller introduces subtle biases in action selection due to sampling variance or rollout structure, which the exploitative strategy can leverage more effectively than pure uniform randomness.
+
+The Monte Carlo Tree Search (MCTS) controller exhibited highly variable performance across trials. In some cases, it achieved strong outcomes, while in others it performed significantly worse than the simpler baseline controllers. One possible explanation for this inconsistency is the simulation policy used during the expansion and rollout phases of the MCTS algorithm. If the rollout simulations do not accurately reflect the true value of game states, the resulting value estimates may misguide the tree search process. Alternatively, the observed variability may be attributable to implementation errors or insufficient exploration within the search tree. Further investigation is required to determine the primary cause of this behavior.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{CONCLUSIONS AND FUTURE WORKS}
