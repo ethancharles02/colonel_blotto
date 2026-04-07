@@ -276,9 +276,6 @@ Finally, we sweep the memory parameter $\alpha$ over $\{0.1, 0.3, 0.5, 0.7, 0.9\
 \utilityheatmap{utility_retain_alpha_0p9}{retaining}{$\alpha = 0.9$}{retain:alpha:0p9}
 
 \section{OBSERVATIONS}
-<<<<<<< HEAD
-Discussion text here
-\subsection{Tristan Discussion Here}
 \subsection{Convergence Analysis}
 As it seemed that the dp exploit and nash controllers had some of the most interesting results, we focused some analysis of time to convergance on them. In the case of retaining games, 'convergance' means that the number of troops doesn't change for a few games, while in non-retaining games, 'convergance' means that average utility doesn't change for a few games.
 
@@ -288,7 +285,6 @@ For the retaining games, we a far faster rate of convergence in general and a fa
 
 Unsurprisingly, the even strategy converged the fastest in general. Regardless of which strategy you pick, going even each time is definitely the worst strategy, unless you have double the troops of the opponent. If we are interested in minimizing time to convergence (secondary to maximizing utility), then exploiting your opponent's strategy (as an attacker) seems to converge fastest, while it still remains unclear which strategy is best as the defender. In every case, the defender's strategy does seem to matter less for convergence, while the attacker's strategy will impact convergence time much more.
 
-=======
 \subsection{Security vs. Exploitation}
 One of the clearest tradeoffs in our results was the distinction between security and exploitation. The Dynamic Programming Nash controller was designed to be secure in the minimax sense, and in practice it consistently protected its floor very well across parameter settings. In the canonical non-retaining case, for example, the defender utility for \texttt{dp\_nash} stayed nearly constant across all attacking controllers, ranging only from approximately $0.236$ to $0.238$. By contrast, \texttt{dp\_exploit} achieved a higher best-case value in the same table, but its performance ranged from approximately $0.001$ to $0.360$ depending on the opponent. This is exactly the tradeoff we would expect from equilibrium play: stronger worst-case protection, but less aggressive exploitation of weak opponents.
 
@@ -297,7 +293,7 @@ The right intuition is the same as in Rock-Paper-Scissors. The equilibrium strat
 This was especially visible in the non-retaining experiments against the \texttt{random} controller. In the canonical non-retaining setting, \texttt{dp\_exploit} achieved an average defender utility of approximately $0.310$ against a random attacker, while \texttt{dp\_nash} achieved approximately $0.238$. The same pattern held when $\alpha = 0.1$, where \texttt{dp\_exploit} reached approximately $0.373$ against \texttt{random}, compared with approximately $0.304$ for \texttt{dp\_nash}. In these cases, the exploitative controller was preferable precisely because the opponent was not playing a secure strategy of its own.
 
 The retaining experiments showed that this tradeoff was not limited to the dynamic-programming controllers. In some retaining settings, the \texttt{retaining\_heuristic} controller was preferable to \texttt{dp\_nash} against weak opponents. When $N_d = 6$, \texttt{retaining\_heuristic} achieved approximately $0.206$ against a random attacker, while \texttt{dp\_nash} achieved approximately $-0.033$. When $N_a = 14$, \texttt{retaining\_heuristic} achieved approximately $0.448$ against \texttt{random}, compared with approximately $0.248$ for \texttt{dp\_nash}. Taken together, these results suggest that \texttt{dp\_nash} was often the safest controller when robustness mattered most, but it was not always the best controller when the opponent was known to be weak, random, or otherwise exploitable.
->>>>>>> 3a0eba146fbc051def32c59a2fc1f17bd50b2fed
+
 \subsection{Monte Carlo Based Controllers}
 An interesting behavior was observed with the Monte Carlo (MC) controller. In scenarios where the number of attackers and defenders was equal, the MC controller behaved identically to the Random controller. This occurs because, under these conditions, the Monte Carlo sampling procedure produced uniform utility estimates across the available actions. As a result, the policy induced by the MC controller was effectively equivalent to selecting actions uniformly at random.
 
