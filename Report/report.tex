@@ -89,7 +89,6 @@ We are interested in researching a game theoretical scenario for which no obviou
 
 Consider a classic variation of colonel blotto game with two battlefields and two generals, one defending general and one attacking general. Both generals have n troops and must decide how to allocate these troops between the two battlefields. For each battlefield, the defender wins if they have at least as many troops as the attacker (meaning they win in a tie) and the attacker wins if they have more troops than the defender. The total utility of the game is 1 if the defender defends both battlefields, 0 if they defend one of the battlefields, and -1 if they defend neither battlefield. It is worth noting that a utility of -1 isn’t possible in the classic game, as when attacker and defender have the same troop count, it’s impossible for the attack to win both fields. The defending general wants to maximize utility while the attacking general wants to minimize it, and they must simultaneously commit to a strategy without knowing the strategy of the other general.
 
-<<<<<<< HEAD
 To illustrate the game mechanics, consider a simple one-shot game with 2 troops and 2 battlefields. Table~\ref{table_utility} shows the utility outcomes for all possible strategy combinations, and Table~\ref{table_capture} shows the corresponding capture rates for attacking troops.
 
 \begin{table}[htbp]
@@ -138,21 +137,9 @@ When $\frac{1}{2} \leq \vartheta < \frac{3\lfloor n/2 \rfloor+1}{4\lfloor n/2 \r
 
 In a variation on the classic colonel blotto game, both generals retain any troops they capture from the opponent. This variation adds a different dynamic to the game that is far more likely to result in an equilibrium state (ie either the attacker or defender have enough troops to win both battlefields every time). This leads to strategies that are less concerned with short term utility more about troops acquisition.
 
-\subsubsection{Subsubsection here} Subsubsection text
-
-=======
->>>>>>> a770457d18ce7521981f1cd060cb37bdb8dc8753
-\section{RELATED WORK}
-Related work text here
-
 \section{METHODOLOGY}
-Methodology text here
-\subsection{Simulation Parameters}
-Subsection text here about the different parameters in the simulation
-\subsection{Simulation Types}
-Subsection text here about the different types of the simulation (retaining and not retaining?)
 \subsection{Controllers}
-Subsection text here about the different controllers we made
+For our experiments, we designed seven different controllers. There are 4 which are designed for both retaining and non-retaining variants: Random, Even, DP Nash, and DP Exploit. Monte Carlo Tree Search and Retaining Heuristic are designed specifically for the retaining variant of the game. Monte Carlo is designed for the non-retaining variant. They are explained in detail below.
 \subsubsection{Random}
 The Random agent selects uniformly at random from all valid troop allocations available to it. The agent does not attempt to model the opponent or reason about expected outcomes. Instead, it acts as a baseline policy for comparison with more sophisticated agents. Because its behavior is entirely stochastic, its performance provides a lower-bound benchmark for evaluating the effectiveness of the other agents.
 \subsubsection{Even}
@@ -297,7 +284,6 @@ The right intuition is the same as in Rock-Paper-Scissors. The equilibrium strat
 This was especially visible in the non-retaining experiments against the \texttt{random} controller. In the canonical non-retaining setting, \texttt{dp\_exploit} achieved an average defender utility of approximately $0.310$ against a random attacker, while \texttt{dp\_nash} achieved approximately $0.238$. The same pattern held when $\alpha = 0.1$, where \texttt{dp\_exploit} reached approximately $0.373$ against \texttt{random}, compared with approximately $0.304$ for \texttt{dp\_nash}. In these cases, the exploitative controller was preferable precisely because the opponent was not playing a secure strategy of its own.
 
 The retaining experiments showed that this tradeoff was not limited to the dynamic-programming controllers. In some retaining settings, the \texttt{retaining\_heuristic} controller was preferable to \texttt{dp\_nash} against weak opponents. When $N_d = 6$, \texttt{retaining\_heuristic} achieved approximately $0.206$ against a random attacker, while \texttt{dp\_nash} achieved approximately $-0.033$. When $N_a = 14$, \texttt{retaining\_heuristic} achieved approximately $0.448$ against \texttt{random}, compared with approximately $0.248$ for \texttt{dp\_nash}. Taken together, these results suggest that \texttt{dp\_nash} was often the safest controller when robustness mattered most, but it was not always the best controller when the opponent was known to be weak, random, or otherwise exploitable.
-\subsection{Bryce Discussion Here}
 \subsection{Monte Carlo Based Controllers}
 An interesting behavior was observed with the Monte Carlo (MC) controller. In scenarios where the number of attackers and defenders was equal, the MC controller behaved identically to the Random controller. This occurs because, under these conditions, the Monte Carlo sampling procedure produced uniform utility estimates across the available actions. As a result, the policy induced by the MC controller was effectively equivalent to selecting actions uniformly at random.
 
