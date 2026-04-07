@@ -36,12 +36,13 @@ EXPECTED_UTILITY_LENGTH = 1000 * 100
 class FigureSpec:
     retain: bool
     parameter: str
-    values: tuple[str, ...]
+    value: str
 
     @property
     def output_name(self) -> str:
         retain_label = "retain" if self.retain else "nonretain"
-        return f"utility_{retain_label}_{self.parameter}.png"
+        value_label = self.value.replace(".", "p")
+        return f"utility_{retain_label}_{self.parameter}_{value_label}.png"
 
 
 def parse_args() -> argparse.Namespace:
@@ -79,13 +80,14 @@ def iter_figure_specs() -> list[FigureSpec]:
     specs: list[FigureSpec] = []
     for retain in (False, True):
         for parameter in PLOT_PARAMETER_ORDER:
-            specs.append(
-                FigureSpec(
-                    retain=retain,
-                    parameter=parameter,
-                    values=tuple(get_parameter_family_values(parameter)),
+            for value in get_parameter_family_values(parameter):
+                specs.append(
+                    FigureSpec(
+                        retain=retain,
+                        parameter=parameter,
+                        value=value,
+                    )
                 )
-            )
     return specs
 
 
@@ -94,14 +96,13 @@ def collect_expected_results(results_dir: Path) -> dict[Path, tuple[str, str]]:
 
     for spec in iter_figure_specs():
         agents = get_agent_order(spec.retain)
-        for value in spec.values:
-            params = get_canonical_config()
-            params[spec.parameter] = value
-            for attacker in agents:
-                for defender in agents:
-                    row = build_experiment_row(attacker, defender, spec.retain, params)
-                    csv_path = build_results_path(results_dir, row).resolve()
-                    expected.setdefault(csv_path, (attacker, defender))
+        params = get_canonical_config()
+        params[spec.parameter] = spec.value
+        for attacker in agents:
+            for defender in agents:
+                row = build_experiment_row(attacker, defender, spec.retain, params)
+                csv_path = build_results_path(results_dir, row).resolve()
+                expected.setdefault(csv_path, (attacker, defender))
 
     return expected
 
@@ -159,16 +160,6 @@ def load_cached_utilities(
     return 0, cached_utilities
 
 
-def get_grid_shape(num_subplots: int) -> tuple[int, int]:
-    if num_subplots == 5:
-        return 2, 3
-    if num_subplots == 4:
-        return 2, 2
-    if num_subplots == 3:
-        return 1, 3
-    raise ValueError(f"Unsupported subplot count: {num_subplots}")
-
-
 def build_matrix(
     retain: bool,
     parameter: str,
@@ -222,39 +213,29 @@ def render_figure(
     results_dir: Path,
     output_dir: Path,
     utility_cache: dict[Path, float],
-    figure_index: int,
-    total_figures: int,
     quiet: bool,
 ) -> None:
-    rows, cols = get_grid_shape(len(spec.values))
-    fig, axes = plt.subplots(rows, cols, figsize=(5.3 * cols, 4.6 * rows), constrained_layout=True)
-    axes_array = np.atleast_1d(axes).ravel()
+    fig, ax = plt.subplots(figsize=(6.6, 5.4), constrained_layout=True)
     display_labels = [DISPLAY_AGENT_LABELS[agent] for agent in get_agent_order(spec.retain)]
     parameter_label = DISPLAY_PARAMETER_LABELS[spec.parameter]
     canonical_value = get_canonical_config()[spec.parameter]
     retain_label = "retain = True" if spec.retain else "retain = False"
+    title = f"{parameter_label} = {spec.value}"
+    if spec.value == canonical_value:
+        title += " (canonical)"
 
     log(
-        f"Rendering {spec.output_name} ({retain_label}, focus={parameter_label}, {len(spec.values)} subplots)",
+        f"Rendering {spec.output_name} ({retain_label}, {parameter_label}={spec.value})",
         quiet,
     )
 
-    last_image = None
-    for axis, value in zip(axes_array, spec.values):
-        matrix = build_matrix(spec.retain, spec.parameter, value, results_dir, utility_cache)
-        subplot_title = f"{parameter_label} = {value}"
-        if value == canonical_value:
-            subplot_title += " (canonical)"
-        last_image = render_heatmap(axis, matrix, display_labels, subplot_title)
-
-    for axis in axes_array[len(spec.values) :]:
-        axis.set_visible(False)
-
+    matrix = build_matrix(spec.retain, spec.parameter, spec.value, results_dir, utility_cache)
+    image = render_heatmap(ax, matrix, display_labels, title)
     fig.suptitle(
-        f"Average defender utility per step | {retain_label} | focus: {parameter_label}",
-        fontsize=16,
+        f"Average defender utility per step | {retain_label}",
+        fontsize=14,
     )
-    fig.colorbar(last_image, ax=axes_array[: len(spec.values)].tolist(), fraction=0.025, pad=0.03)
+    fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
     output_path = output_dir / spec.output_name
     fig.savefig(output_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
@@ -281,22 +262,17 @@ def main() -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     figure_specs = iter_figure_specs()
-    for figure_index, spec in enumerate(
-        tqdm(
-            figure_specs,
-            total=len(figure_specs),
-            desc="Rendering figures",
-            disable=quiet,
-        ),
-        start=1,
+    for spec in tqdm(
+        figure_specs,
+        total=len(figure_specs),
+        desc="Rendering figures",
+        disable=quiet,
     ):
         render_figure(
             spec,
             results_dir,
             output_dir,
             utility_cache,
-            figure_index,
-            len(figure_specs),
             quiet,
         )
 
