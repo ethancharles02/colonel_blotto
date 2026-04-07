@@ -176,7 +176,15 @@ Result text here (organized by controller maybe?)
 \section{OBSERVATIONS}
 Discussion text here
 \subsection{Tristan Discussion Here}
-\subsection{Bryce Discussion Here}
+\subsection{Convergence Analysis}
+As it seemed that the dp exploit and nash controllers had some of the most interesting results, we focused some analysis of time to convergance on them. In the case of retaining games, 'convergance' means that the number of troops doesn't change for a few games, while in non-retaining games, 'convergance' means that average utility doesn't change for a few games.
+
+Interestingly, we found that the exploit controller converged much faster when it was the attacker compared to when it was the defender. The nash controller didn't show much significance in time to convergance, though it did have a higher variance.
+
+For the retaining games, we a far faster rate of convergence in general and a far lower variance as well. This is likely due to the fact that as soon as there's a troop advantage, the game is essentially over in the long term as the advantaged player has a compounding advantage that makes it really difficult/impossible for an opponent to come back. Interestingly, the nash agent seemed to converge the slowest, while in the non-retaining games, they didn't seem to meaningfully impact convergence.
+
+Unsurprisingly, the even strategy converged the fastest in general. Regardless of which strategy you pick, going even each time is definitely the worst strategy, unless you have double the troops of the opponent. If we are interested in minimizing time to convergence (secondary to maximizing utility), then exploiting your opponent's strategy (as an attacker) seems to converge fastest, while it still remains unclear which strategy is best as the defender. In every case, the defender's strategy does seem to matter less for convergence, while the attacker's strategy will impact convergence time much more.
+
 \subsection{Monte Carlo Based Controllers}
 An interesting behavior was observed with the Monte Carlo (MC) controller. In scenarios where the number of attackers and defenders was equal, the MC controller behaved identically to the Random controller. This occurs because, under these conditions, the Monte Carlo sampling procedure produced uniform utility estimates across the available actions. As a result, the policy induced by the MC controller was effectively equivalent to selecting actions uniformly at random.
 
