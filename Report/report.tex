@@ -79,7 +79,7 @@ An Analysis of Colonel Blotto Strategies in Non-Equilibrium Scenarios
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{abstract}
 
-We are interested in researching a game theoretical scenario for which no obvious equilibrium state exists. Specifically, we decided to look at a series of Colonel Blotto games, both the canonical game as well as a game with a retaining structure. We wanted to see what controllers could primarily maximize utility, and secondarily minimize the game-to-game variance.
+Our project is about designing controllers for Colonel Blotto games involving deterrence, repeated play, and troop retention. We compare several baseline, search-based, and dynamic-programming controllers in both non-retaining and retaining games using average utility and game-to-game consistency. Across these variants, the main pattern is a tradeoff between secure controllers that protect worst-case performance and exploitative controllers that achieve higher upside against weak opponents, with troop retention amplifying early advantages over time.
 
 \end{abstract}
 
@@ -87,7 +87,9 @@ We are interested in researching a game theoretical scenario for which no obviou
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{INTRODUCTION}
 
-Consider a classic variation of colonel blotto game with two battlefields and two generals, one defending general and one attacking general. Both generals have n troops and must decide how to allocate these troops between the two battlefields. For each battlefield, the defender wins if they have at least as many troops as the attacker (meaning they win in a tie) and the attacker wins if they have more troops than the defender. The total utility of the game is 1 if the defender defends both battlefields, 0 if they defend one of the battlefields, and -1 if they defend neither battlefield. It is worth noting that a utility of -1 isn’t possible in the classic game, as when attacker and defender have the same troop count, it’s impossible for the attack to win both fields. The defending general wants to maximize utility while the attacking general wants to minimize it, and they must simultaneously commit to a strategy without knowing the strategy of the other general.
+Consider a classic variation of the Colonel Blotto game with two battlefields and two generals, one defending general and one attacking general. Both generals have n troops and must decide how to allocate these troops between the two battlefields. For each battlefield, the defender wins if they have at least as many troops as the attacker (meaning they win in a tie) and the attacker wins if they have more troops than the defender. The total utility of the game is 1 if the defender defends both battlefields, 0 if they defend one of the battlefields, and -1 if they defend neither battlefield. The defending general wants to maximize utility while the attacking general wants to minimize it, and they must simultaneously commit to a strategy without knowing the strategy of the other general.
+
+Colonel Blotto games are a classical family of resource-allocation games with a large literature spanning continuous, discrete, and computational variants \cite{borel1921theorie,gross1950continuous,roberson2006colonel,hart2008discrete,ahmadinejad2019duels}. They have also been used as models for security and systems-defense resource allocation problems \cite{shubik1981systems,pita2009using}. We explore a specific variant of Blotto games in which the attacking troops do not always follow orders and can be \emph{deterred} if their probability of capture is too high, building upon prior work in this area \cite{original_blotto_deterrence}. More recent analysis of that deterrence model shows that these games need not always admit mixed-strategy Nash equilibria; for example, when both sides have two troops and the troops decide whether or not to follow orders without observing the generals' mixed strategies, no mixed-strategy equilibria exist when the capture probability threshold is in the interval $(1/2, 2/3)$ \cite{info_structure_deterrence}.
 
 To illustrate the game mechanics, consider a simple one-shot game with 2 troops and 2 battlefields. Table~\ref{table_utility} shows the utility outcomes for all possible strategy combinations, and Table~\ref{table_capture} shows the corresponding capture rates for attacking troops.
 
@@ -129,17 +131,23 @@ To illustrate the game mechanics, consider a simple one-shot game with 2 troops 
 \end{center}
 \end{table}
 
-The defending troops will do whatever they are told. The attacking troops, however, receive utility m for obeying orders (as opposed to defecting) and are penalized utility p if they are captured during an attack. If X is the perceived mixed strategy of the attacking general and Y is the perceived mixed strategy of the defending general, the attacking troops will defect if the expected capture probability C(X, Y) <= $\vartheta$, where $\vartheta$ is equal to m/p. The defending general may manipulate their mixture Y in order to take advantage of this deterrence dynamic. The attacking general must be careful about their own mixed strategy in order to prevent their troops from defecting.
+The defending troops will do whatever they are told. The attacking troops, however, receive utility m for obeying orders (as opposed to defecting) and are penalized utility p if they are captured during an attack. If X is the perceived mixed strategy of the attacking general and Y is the perceived mixed strategy of the defending general, the attacking troops will defect if the expected capture probability $C(X, Y) \leq \vartheta$, where $\vartheta$ is equal to m/p. The defending general may manipulate their mixture Y in order to take advantage of this deterrence dynamic. The attacking general must be careful about their own mixed strategy in order to prevent their troops from defecting.
 
-When $\frac{1}{2} \leq \vartheta < \frac{3\lfloor n/2 \rfloor+1}{4\lfloor n/2 \rfloor+2}$ (which goes to $\frac{3}{4}$ in the limit), there do not exist Nash equilibrium values of X and Y. In other words, it is not clear what rational generals would do in this situation.
+Here, a mixed strategy means a probability distribution over the possible troop allocations rather than one fixed allocation, so X and Y describe how likely each general is to choose each deployment. The expected capture probability C(X, Y) is the average fraction of attacking troops captured under those randomized choices, and expected utility is the average payoff obtained under the same randomization. The threshold $\vartheta = m/p$ therefore summarizes how much capture risk the attacking troops are willing to tolerate before defecting.
 
-\subsection{Troop Retention Variation}
+In deterrence-based variants, equilibrium need not always exist, so it is not always clear what rational generals would do in every parameter regime \cite{info_structure_deterrence}.
 
-In a variation on the classic colonel blotto game, both generals retain any troops they capture from the opponent. This variation adds a different dynamic to the game that is far more likely to result in an equilibrium state (ie either the attacker or defender have enough troops to win both battlefields every time). This leads to strategies that are less concerned with short term utility more about troops acquisition.
+\subsection{Repeated Play and Retention}
+
+To study how deterrence evolves over time, we extend the model to a repeated-play setting in which the attacker's perceived capture probability is updated after each battle using an $\alpha$-weighted filter, meaning new observations are blended with prior beliefs. At each time step, a battle is fought between the two generals, and the attacker's perceived capture probability is updated based on the observed capture rate in that battle. This lets the attacker adapt its behavior over time and gives us a way to study controller performance in a setting with learning rather than only in a one-shot interaction.
+
+Additionally, we explore a second variation of the game where both generals retain any troops they capture from the opponent. This variation introduces path dependence: early outcomes change the troop counts available in later rounds, so short-term battlefield utility and long-run resource accumulation do not always align.
+
+In this paper, we treat these variants as empirical controller-comparison problems rather than attempting a full equilibrium characterization. We compare seven implemented controllers across retaining and non-retaining settings and use the resulting matchup data to identify the security-versus-exploitation tradeoff and the role of retention in shaping long-run dynamics.
 
 \section{METHODOLOGY}
 \subsection{Controllers}
-For our experiments, we designed seven different controllers. There are 4 which are designed for both retaining and non-retaining variants: Random, Even, DP Nash, and DP Exploit. Monte Carlo Tree Search and Retaining Heuristic are designed specifically for the retaining variant of the game. Monte Carlo is designed for the non-retaining variant. They are explained in detail below.
+For our experiments, we designed seven different controllers. Four are designed for both retaining and non-retaining variants: Random, Even, DP Nash, and DP Exploit. Monte Carlo Tree Search and Retaining Heuristic are designed specifically for the retaining variant of the game. Monte Carlo is designed for the non-retaining variant. They are explained in detail below. In the descriptions below, a mixed strategy means randomizing across multiple legal actions, a zero-sum matrix game means one player's gain is exactly the other player's loss, and backward induction means solving the later stages first so those values can guide earlier decisions.
 \subsubsection{Random}
 The Random agent selects uniformly at random from all valid troop allocations available to it. The agent does not attempt to model the opponent or reason about expected outcomes. Instead, it acts as a baseline policy for comparison with more sophisticated agents. Because its behavior is entirely stochastic, its performance provides a lower-bound benchmark for evaluating the effectiveness of the other agents.
 \subsubsection{Even}
@@ -148,6 +156,8 @@ The Even agent deterministically divides its troops evenly across the two battle
 The Monte Carlo agent is designed for the non-retaining variant of the simulation. In this setting, the perceived capture probability is ignored to simplify the evaluation process. This simplification reduces the complexity of the state space and allows the agent to evaluate all possible action combinations for the next turn.
 
 Rather than simulating entire games, the agent performs a one-step lookahead search. For each possible move available to the agent, the algorithm enumerates all possible combinations of moves by both players in the next turn. The resulting utility of each combination is computed, and the utilities corresponding to each candidate move are aggregated. The agent then selects the move that maximizes the total utility across all combinations that include that move. If multiple moves produce the same utility, one is selected uniformly at random.
+
+For example, in the 2-troop, 2-battlefield game from Table~\ref{table_utility}, if the defender considers the action $(1,1)$, the one-step evaluation compares that action against attacker actions $(2,0)$, $(1,1)$, and $(0,2)$, which yield defender utilities of $0$, $1$, and $0$, respectively. The controller performs the same calculation for the other candidate defender actions, aggregates the one-step utilities for each candidate, and then chooses the action with the largest aggregate score.
 
 Although this agent is referred to as a Monte Carlo agent, it does not perform stochastic sampling of actions. Traditional Monte Carlo methods estimate expected outcomes through repeated random sampling of possible scenarios. In contrast, this agent deterministically enumerates all possible one-step action combinations and therefore does not constitute a true Monte Carlo simulation. Instead, it serves as a simple baseline evaluation method for the non-retaining variant of the game.
 \subsubsection{Monte Carlo Tree Search}
@@ -164,7 +174,6 @@ The search proceeds for a fixed computational budget defined by a maximum number
 Once a leaf node is selected, the algorithm performs several random rollout simulations from that state to estimate the expected utility of the position. The resulting utility is then backpropagated through the visited nodes, updating their statistics.
 
 After the search budget is exhausted, the agent selects the action corresponding to the child of the root node with the highest visit count, which represents the branch with the strongest empirical performance.
-% TODO fix the width on this image
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.5\textwidth]{mcts_tree}
@@ -180,7 +189,7 @@ At each state, the agent forms the defender-payoff matrix over all legal attacke
 \subsubsection{Dynamic Programming Exploit (DP Exploit)}
 The Dynamic Programming Exploit agent uses the same dynamic-programming state representation, transition model, and backward-induction structure as DP Nash. The difference is that it does not solve the mixed equilibrium at each state. Instead, it assumes the opposing player chooses uniformly at random from all legal troop allocations and computes a best response to that random policy at each state. When multiple pure actions achieve the same best-response value, the agent mixes uniformly across those tied actions.
 \subsubsection{Retaining Heuristic}
-The Heuristic agent prioritizes securing a battlefield outright before distributing troops more evenly. Concretely, when the agent does not yet have enough remaining troops to guarantee victory on both battlefields, it allocates all available troops to one battlefield chosen uniformly at random. Once its remaining troop count is sufficiently large that it could allocate equal numbers of troops to both battlefields and still exceed the opponent’s previous allocations, the agent switches to an even split across both battlefields.
+The Heuristic agent prioritizes securing a battlefield outright before distributing troops more evenly. Concretely, when the agent does not yet have enough remaining troops to guarantee victory on both battlefields, it allocates all available troops to one battlefield chosen uniformly at random. Once its remaining troop count is sufficiently large that it could allocate equal numbers of troops to both battlefields and still exceed the opponent's previous allocations, the agent switches to an even split across both battlefields.
 
 \section{RESULTS}
 The defender utility heatmaps in this section summarize average utility per step across the full controller matchup matrix. For each parameterization and each attacker-defender controller pairing, we simulated 1000 games, with each game running for 100 stages. We organize the results by game variant first and then by the parameter being swept so that the effect of each modeling choice can be compared under both independent-round and retaining dynamics.
@@ -277,13 +286,13 @@ Finally, we sweep the memory parameter $\alpha$ over $\{0.1, 0.3, 0.5, 0.7, 0.9\
 
 \section{OBSERVATIONS}
 \subsection{Convergence Analysis}
-As it seemed that the dp exploit and nash controllers had some of the most interesting results, we focused some analysis of time to convergance on them. In the case of retaining games, 'convergance' means that the number of troops doesn't change for a few games, while in non-retaining games, 'convergance' means that average utility doesn't change for a few games.
+As DP Exploit and DP Nash had some of the most interesting results, we focused some analysis on their time to convergence. In the case of retaining games, ``convergence'' means that the number of troops does not change for a few games, while in non-retaining games, ``convergence'' means that average utility does not change for a few games.
 
-Interestingly, we found that the exploit controller converged much faster when it was the attacker compared to when it was the defender. The nash controller didn't show much significance in time to convergance, though it did have a higher variance.
+Interestingly, we found that the Exploit controller converged much faster when it was the attacker than when it was the defender. The Nash controller did not show much significance in time to convergence, though it did have a higher variance.
 
-For the retaining games, we a far faster rate of convergence in general and a far lower variance as well. This is likely due to the fact that as soon as there's a troop advantage, the game is essentially over in the long term as the advantaged player has a compounding advantage that makes it really difficult/impossible for an opponent to come back. Interestingly, the nash agent seemed to converge the slowest, while in the non-retaining games, they didn't seem to meaningfully impact convergence.
+For the retaining games, we found a far faster rate of convergence in general and a far lower variance as well. This is likely due to the fact that as soon as there is a troop advantage, the game is essentially over in the long term, as the advantaged player has a compounding advantage that makes it very difficult for an opponent to come back. Interestingly, the Nash agent seemed to converge the slowest, while in the non-retaining games, it did not seem to meaningfully impact convergence.
 
-Unsurprisingly, the even strategy converged the fastest in general. Regardless of which strategy you pick, going even each time is definitely the worst strategy, unless you have double the troops of the opponent. If we are interested in minimizing time to convergence (secondary to maximizing utility), then exploiting your opponent's strategy (as an attacker) seems to converge fastest, while it still remains unclear which strategy is best as the defender. In every case, the defender's strategy does seem to matter less for convergence, while the attacker's strategy will impact convergence time much more.
+Unsurprisingly, the Even strategy converged the fastest in general. Regardless of which strategy you pick, going even each time is definitely the worst strategy, unless you have double the troops of the opponent. If we are interested in minimizing time to convergence, secondary to maximizing utility, then exploiting your opponent's strategy as an attacker seems to converge fastest, while it still remains unclear which strategy is best as the defender. In every case, the defender's strategy does seem to matter less for convergence, while the attacker's strategy impacts convergence time much more.
 
 \subsection{Security vs. Exploitation}
 One of the clearest tradeoffs in our results was the distinction between security and exploitation. The Dynamic Programming Nash controller was designed to be secure in the minimax sense, and in practice it consistently protected its floor very well across parameter settings. In the canonical non-retaining case, for example, the defender utility for \texttt{dp\_nash} stayed nearly constant across all attacking controllers, ranging only from approximately $0.236$ to $0.238$. By contrast, \texttt{dp\_exploit} achieved a higher best-case value in the same table, but its performance ranged from approximately $0.001$ to $0.360$ depending on the opponent. This is exactly the tradeoff we would expect from equilibrium play: stronger worst-case protection, but less aggressive exploitation of weak opponents.
@@ -308,7 +317,7 @@ The Monte Carlo Tree Search (MCTS) controller exhibited highly variable performa
 
 \subsection{Conclusions}
 
-This project studied how a range of controllers behave in Colonel Blotto variants with deterrence and troop retention, particularly in settings where equilibrium behavior is not immediately obvious. Across both retaining and non-retaining games, the most consistent theme was that controller performance depended not only on the game parameters but also on whether the objective was security or exploitation. In particular, \texttt{dp\_nash} provided strong worst-case protection, while more exploitative controllers could achieve higher utility against weak or predictable opponents.
+This project empirically compared a range of controllers in Colonel Blotto variants with deterrence and troop retention, particularly in settings where equilibrium behavior can be unclear. Across both retaining and non-retaining games, the most consistent theme was that controller performance depended not only on the game parameters but also on whether the objective was security or exploitation. In particular, \texttt{dp\_nash} provided strong worst-case protection, while more exploitative controllers could achieve higher utility against weak or predictable opponents.
 
 The results also showed that the retaining and non-retaining variants produce qualitatively different strategic behavior. In the non-retaining setting, the main effect of a controller is often visible through immediate action selection, while in the retaining setting early advantages can compound over time and amplify small strategic differences. Taken together, these results suggest that there is no single universally best controller in this class of games. Instead, the best choice depends on whether the controller is being used to guarantee robustness against adversarial play or to exploit structure in the opponent's behavior.
 
@@ -332,6 +341,46 @@ Although each controller matchup was simulated many times, there is still value 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{thebibliography}{99}
+
+\bibitem{borel1921theorie}
+E.~Borel, ``La theorie du jeu et les equations integrales a noyau symetrique,''
+\emph{Comptes Rendus de l'Academie des Sciences}, vol.~173, pp.~1304--1308, 1921.
+
+\bibitem{gross1950continuous}
+O.~Gross and R.~Wagner, ``A continuous colonel blotto game,'' RAND Corporation, 1950.
+
+\bibitem{roberson2006colonel}
+B.~Roberson, ``The colonel blotto game,'' \emph{Economic Theory}, vol.~29, no.~1,
+pp.~1--24, 2006.
+
+\bibitem{hart2008discrete}
+S.~Hart, ``Discrete colonel blotto and general lotto games,''
+\emph{International Journal of Game Theory}, vol.~36, no.~3--4, pp.~441--460, 2008.
+
+\bibitem{ahmadinejad2019duels}
+A.~Ahmadinejad, S.~Dehghani, M.~T. Hajiaghayi, B.~Lucier, H.~Mahini, and
+S.~Seddighin, ``From duels to battlefields: Computing equilibria of blotto and
+other games,'' \emph{Mathematics of Operations Research}, vol.~44, no.~4,
+pp.~1305--1325, 2019.
+
+\bibitem{shubik1981systems}
+M.~Shubik and R.~J. Weber, ``Systems defense games: Colonel blotto, command and
+control,'' \emph{Naval Research Logistics Quarterly}, vol.~28, no.~2,
+pp.~281--287, 1981.
+
+\bibitem{pita2009using}
+J.~Pita, M.~Jain, and S.~Kraus, ``Using game theory for Los Angeles airport
+security,'' \emph{AI Magazine}, vol.~30, no.~1, pp.~43--57, 2009.
+
+\bibitem{original_blotto_deterrence}
+D.~Grimsman and K.~Paarporn, ``A colonel blotto approach to deterrence,'' in
+\emph{2025 IEEE 64th Conference on Decision and Control (CDC)}, pp.~3498--3503,
+Rio de Janeiro, Brazil, Dec. 2025.
+
+\bibitem{info_structure_deterrence}
+T.~Mott, D.~Grimsman, and K.~Paarporn, ``Information structure of defection
+decisions in a colonel blotto model of deterrence,'' unpublished manuscript,
+2026.
 
 \bibitem{mcts_wiki}
 "Monte Carlo Tree Search", Wikipedia, Wikimedia Foundation,

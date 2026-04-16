@@ -339,3 +339,4 @@ __pycache__/
 jobs/*.csv
 jobs/*.sh
 jobs/*.out
+results/*
